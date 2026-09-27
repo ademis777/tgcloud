@@ -10,6 +10,7 @@ import { accountProfile, type AccountProfile } from "@/lib/account-profile";
 import { FilePreviewModal, FileThumbnail } from "@/components/file-preview";
 import { previewDescriptor } from "@/lib/file-preview";
 import { Eye } from "lucide-react";
+import { runBulkDelete, type BulkDeleteProgress } from "@/lib/bulk-delete";
 
 type FolderRow = { id: string; parent_id: string | null; name: string };
 type FileRow = { id: string; name: string; size_bytes: number; mime_type: string; folder_id: string | null; status: "pending" | "ready" | "failed"; last_error: string | null; created_at: string };
@@ -31,6 +32,8 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [catalogOnlyFile, setCatalogOnlyFile] = useState<FileRow | null>(null);
   const [previewFile, setPreviewFile] = useState<FileRow | null>(null);
+  const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(() => new Set());
+  const [bulkProgress, setBulkProgress] = useState<BulkDeleteProgress | null>(null);
   const refresh = useCallback(async () => {
     const db = browserDb();
     const [{ data: f, error: fe }, { data: d, error: de }, status] = await Promise.all([
@@ -55,6 +58,27 @@ export default function Dashboard() {
   }, [router, refresh]);
   const visibleFolders = useMemo(() => folders.filter(f => f.parent_id === selected), [folders, selected]);
   const visibleFiles = useMemo(() => files.filter(f => f.folder_id === selected), [files, selected]);
+  const allVisibleSelected = visibleFiles.length > 0 && visibleFiles.every(f => selectedFileIds.has(f.id));
+  const partiallySelected = !allVisibleSelected && visibleFiles.some(f => selectedFileIds.has(f.id));
+  const selectedCount = visibleFiles.filter(f => selectedFileIds.has(f.id)).length;
+  function navigateToFolder(id: string | null) {
+    if (busy) return;
+    setSelected(id);
+    setSelectedFileIds(new Set());
+    setBulkProgress(null);
+  }
+  function toggleFileSelection(id: string, checked: boolean) {
+    if (busy) return;
+    setSelectedFileIds(previous => {
+      const next = new Set(previous);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  }
+  function toggleSelectAll(checked: boolean) {
+    if (busy) return;
+    setSelectedFileIds(checked ? new Set(visibleFiles.map(f => f.id)) : new Set());
+  }
   const parent = selected ? folders.find(f => f.id === selected)?.parent_id || null : null;
   const selectedName = selected ? folders.find(f => f.id === selected)?.name || t("dashboardFolder") : t("dashboardFiles");
   async function createFolder() {
@@ -135,6 +159,7 @@ export default function Dashboard() {
     try {
       const result = await api<{telegramDeleted:boolean; removedFromCatalog:boolean}>("/api/files/" + encodeURIComponent(file.id), "DELETE");
       setNotice(t(result.telegramDeleted ? "dashboardRemoved" : "dashboardCatalogOnlyRemoved"));
+      setSelectedFileIds(old => { const next = new Set(old); next.delete(file.id); return next; });
       await refresh();
     } catch (e) {
       setError(t("dashboardRemoveError") + " " + (e instanceof Error ? e.message : ""));
@@ -148,17 +173,50 @@ export default function Dashboard() {
     try {
       await api("/api/files/" + encodeURIComponent(file.id) + "?catalogOnly=1", "DELETE");
       setCatalogOnlyFile(null);
+      setSelectedFileIds(old => { const next = new Set(old); next.delete(file.id); return next; });
       setNotice(t("dashboardCatalogOnlyRemoved"));
       await refresh();
     } catch (e) {
       setError(t("dashboardRemoveError") + " " + (e instanceof Error ? e.message : ""));
     } finally { setBusy(false); }
   }
+  async function removeSelectedFiles() {
+    if (busy) return;
+    const batch = visibleFiles.filter(f => selectedFileIds.has(f.id));
+    if (!batch.length) return;
+    if (!window.confirm(t("bulkDeleteConfirm", { count: batch.length }))) return;
+    setBusy(true); setError(""); setNotice(""); setCatalogOnlyFile(null); setBulkProgress(null);
+    try {
+      const result = await runBulkDelete(
+        batch.map(f => f.id),
+        async id => {
+          const response = await api<{ removedFromCatalog: boolean }>("/api/files/" + encodeURIComponent(id), "DELETE");
+          if (!response.removedFromCatalog) throw new Error("Deletion was not confirmed.");
+        },
+        setBulkProgress,
+        2,
+      );
+      // Keep unsuccessful files selected so the user can inspect and retry them.
+      setSelectedFileIds(new Set(result.failedIds));
+      if (result.failedIds.length) {
+        setError(t("bulkDeletePartial", {
+          deleted: result.deletedIds.length, failed: result.failedIds.length,
+        }) + (result.firstError ? " " + result.firstError : ""));
+      } else {
+        setNotice(t("bulkDeleteComplete", { count: result.deletedIds.length }));
+      }
+      await refresh();
+    } catch (e) {
+      setError(t("bulkDeleteRefreshError") + (e instanceof Error ? " " + e.message : ""));
+    } finally {
+      setBusy(false);
+    }
+  }
   async function logout() { await browserDb().auth.signOut(); router.replace("/auth"); }
   return <main className="app-layout">
     <aside className="sidebar"><Link href="/" className="brand"><span className="brand-icon"><Cloud size={22}/></span>TG<span>Cloud</span></Link>
       <span className="sidebar-label">{t("dashboardWorkspace")}</span>
-      <button className={!selected ? "side-link active" : "side-link"} onClick={() => setSelected(null)}><File size={18}/> {t("dashboardFiles")}</button>
+      <button disabled={busy} className={!selected ? "side-link active" : "side-link"} onClick={() => navigateToFolder(null)}><File size={18}/> {t("dashboardFiles")}</button>
       <Link className="side-link" href="/connect"><Settings2 size={18}/> {t("dashboardConnection")}</Link>
       <Link className="side-link" href="/settings"><UserRound size={18}/> {t("settings")}</Link>
       <div className="sidebar-bottom">
@@ -178,12 +236,21 @@ export default function Dashboard() {
         {catalogOnlyFile && <div className="catalog-fallback"><button type="button" className="button outline" disabled={busy} onClick={removeCatalogOnly}>{t("dashboardCatalogOnlyAction")}</button></div>}
       </div>}
       {notice && <div className="notice success" role="status">{notice}</div>}
-      {selected && <button className="text-button align-left" onClick={() => setSelected(parent)}>{t("dashboardBack")}</button>}
+      {selected && <button disabled={busy} className="text-button align-left" onClick={() => navigateToFolder(parent)}>{t("dashboardBack")}</button>}
       <div className="catalog-title"><h2>{t("dashboardCatalog")}</h2><span>{t("dashboardItems",{count:visibleFolders.length + visibleFiles.length})}</span></div>
+      {visibleFiles.length > 0 && <div className="bulk-toolbar" aria-label={t("bulkActions")}>
+        <span className="bulk-selection-count">{t("bulkSelected", { count: selectedCount })}</span>
+        <button type="button" className="bulk-clear" disabled={busy || selectedCount === 0} onClick={() => toggleSelectAll(false)}>{t("bulkClear")}</button>
+        <button type="button" className="button bulk-delete-button" disabled={busy || selectedCount === 0} onClick={removeSelectedFiles}><Trash2 size={16}/>{t("bulkDeleteButton", { count: selectedCount })}</button>
+      </div>}
+      {bulkProgress && <div className="bulk-progress" role="status" aria-live="polite">
+        <span>{t("bulkProgress", { done: bulkProgress.done, total: bulkProgress.total, deleted: bulkProgress.deleted, failed: bulkProgress.failed })}</span>
+        <progress value={bulkProgress.done} max={bulkProgress.total || 1}/>
+      </div>}
       {visibleFolders.length === 0 && visibleFiles.length === 0 && <div className="empty"><HardDriveUpload size={38}/><h3>{t("dashboardEmpty")}</h3><p>{t("dashboardEmptyBody")}</p></div>}
       {visibleFolders.length > 0 && <div className="folder-grid">{visibleFolders.map(f =>
         <div className="folder-tile" key={f.id}>
-          <button type="button" className="folder-open" onClick={() => setSelected(f.id)} disabled={busy} title={f.name}>
+          <button type="button" className="folder-open" onClick={() => navigateToFolder(f.id)} disabled={busy} title={f.name}>
             <Folder size={23}/><span>{f.name}</span>
           </button>
           <div className="folder-actions">
@@ -191,8 +258,12 @@ export default function Dashboard() {
             <button type="button" disabled={busy} onClick={() => deleteFolder(f)} title={t("dashboardFolderDelete")} aria-label={t("dashboardFolderDelete") + ": " + f.name}><Trash2 size={16}/></button>
           </div>
         </div>)}</div>}
-      {visibleFiles.length > 0 && <div className="file-table"><div className="file-head"><span>{t("dashboardFileName")}</span><span>{t("dashboardSize")}</span><span>{t("dashboardStatus")}</span><span>{t("dashboardActions")}</span></div>
-        {visibleFiles.map(f => <div className="file-row" key={f.id}><span className="file-name"><FileThumbnail file={f}/><button type="button" className="file-name-link" title={f.name} disabled={f.status !== "ready" || previewDescriptor(f.mime_type,f.name).kind === "unsupported"} onClick={() => setPreviewFile(f)}>{f.name}</button></span><span className="muted">{prettySize(f.size_bytes)}</span>
+      {visibleFiles.length > 0 && <div className="file-table"><div className="file-head">
+        <label className="file-select-cell" title={t("bulkSelectAll")}><input type="checkbox" checked={allVisibleSelected} disabled={busy} ref={element => { if (element) element.indeterminate = partiallySelected; }} onChange={event => toggleSelectAll(event.target.checked)} aria-label={t("bulkSelectAll")}/></label>
+        <span>{t("dashboardFileName")}</span><span>{t("dashboardSize")}</span><span>{t("dashboardStatus")}</span><span>{t("dashboardActions")}</span></div>
+        {visibleFiles.map(f => <div className="file-row" key={f.id}>
+        <label className="file-select-cell" title={t("bulkSelectFile", { name: f.name })}><input type="checkbox" checked={selectedFileIds.has(f.id)} disabled={busy} onChange={event => toggleFileSelection(f.id,event.target.checked)} aria-label={t("bulkSelectFile", { name: f.name })}/></label>
+        <span className="file-name"><FileThumbnail file={f}/><button type="button" className="file-name-link" title={f.name} disabled={f.status !== "ready" || previewDescriptor(f.mime_type,f.name).kind === "unsupported"} onClick={() => setPreviewFile(f)}>{f.name}</button></span><span className="muted">{prettySize(f.size_bytes)}</span>
           <span className={f.status === "ready" ? "badge ready" : f.status === "failed" ? "badge failed" : "badge"} title={f.last_error || ""}>{f.status === "ready" ? t("dashboardReady") : f.status === "failed" ? t("dashboardFailed") : t("dashboardPending")}</span>
           <span className="file-buttons"><button title={t("previewOpen")} aria-label={t("previewOpen")+": "+f.name} disabled={f.status !== "ready" || previewDescriptor(f.mime_type,f.name).kind === "unsupported"} onClick={() => setPreviewFile(f)}><Eye size={18}/></button><button title={t("dashboardDownload")} disabled={f.status !== "ready"} onClick={() => download(f)}><ArrowDownToLine size={18}/></button><button title={t("dashboardRemove")} disabled={busy} onClick={() => remove(f)}><Trash2 size={17}/></button></span></div>)}</div>}
       <div className="dashboard-footnote">{t("dashboardLimit")}</div>
