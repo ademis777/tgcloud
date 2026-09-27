@@ -37,3 +37,11 @@ test("auth copy is localized for every published language",()=>{
     assert.ok(translate(locale,"authTelegramError").length>0);
   }
 });
+
+test("profile labels are available in every published language",()=>{
+  for(const locale of localeCodes) {
+    assert.ok(translate(locale,"dashboardAccount"));
+    assert.ok(translate(locale,"dashboardTelegramAccount"));
+    assert.ok(translate(locale,"dashboardEmailAccount"));
+  }
+});

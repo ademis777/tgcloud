@@ -2,10 +2,11 @@
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowDownToLine, Cloud, File, Folder, FolderPlus, HardDriveUpload, LogOut, Settings2, Trash2, UploadCloud } from "lucide-react";
+import { ArrowDownToLine, Cloud, File, Folder, FolderPlus, HardDriveUpload, LogOut, Settings2, Trash2, UploadCloud, UserRound } from "lucide-react";
 import { browserDb } from "@/lib/supabase-browser";
 import { accessToken, api } from "@/lib/browser-api";
 import { PreferencesControls, usePreferences } from "@/components/preferences";
+import { accountProfile, type AccountProfile } from "@/lib/account-profile";
 
 type FolderRow = { id: string; parent_id: string | null; name: string };
 type FileRow = { id: string; name: string; size_bytes: number; mime_type: string; folder_id: string | null; status: "pending" | "ready" | "failed"; last_error: string | null; created_at: string };
@@ -16,6 +17,8 @@ export default function Dashboard() {
   const router = useRouter();
   const {t} = usePreferences();
   const [userId, setUserId] = useState("");
+  const [profile, setProfile] = useState<AccountProfile | null>(null);
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const [folders, setFolders] = useState<FolderRow[]>([]);
   const [files, setFiles] = useState<FileRow[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -39,7 +42,7 @@ export default function Dashboard() {
       try {
         const { data } = await browserDb().auth.getUser();
         if (!data.user) { router.replace("/auth"); return; }
-        if (mounted) setUserId(data.user.id);
+        if (mounted) { setUserId(data.user.id); setProfile(accountProfile(data.user)); setAvatarFailed(false); }
         await refresh();
       } catch (e) { if (mounted) setError(e instanceof Error ? e.message : t("dashboardLoadError")); }
     }
@@ -98,7 +101,14 @@ export default function Dashboard() {
       <span className="sidebar-label">{t("dashboardWorkspace")}</span>
       <button className={!selected ? "side-link active" : "side-link"} onClick={() => setSelected(null)}><File size={18}/> {t("dashboardFiles")}</button>
       <Link className="side-link" href="/connect"><Settings2 size={18}/> {t("dashboardConnection")}</Link>
-      <div className="sidebar-bottom"><div className="connection">{connection.connected ? t("dashboardConnected") : t("dashboardDisconnected")}</div><button className="side-link" onClick={logout}><LogOut size={18}/> {t("dashboardLogout")}</button></div>
+      <div className="sidebar-bottom">
+        {profile && <div className="account-card" aria-label={t("dashboardAccount")}>
+          <div className="account-avatar">
+            {profile.avatarUrl && !avatarFailed ? <img src={profile.avatarUrl} alt="" referrerPolicy="no-referrer" onError={() => setAvatarFailed(true)} /> : <UserRound size={20} aria-hidden="true"/>}
+          </div>
+          <div className="account-details"><strong title={profile.displayName}>{profile.displayName}</strong><span title={profile.userLabel}>{profile.userLabel}</span><small>{t(profile.authMethod === "telegram" ? "dashboardTelegramAccount" : "dashboardEmailAccount")}</small></div>
+        </div>}
+        <div className="connection">{connection.connected ? t("dashboardConnected") : t("dashboardDisconnected")}</div><button className="side-link" onClick={logout}><LogOut size={18}/> {t("dashboardLogout")}</button></div>
     </aside>
     <section className="dashboard-content"><div className="dashboard-top"><div><div className="eyebrow">{t("dashboardTitle")}</div><h1>{selectedName}</h1><p className="muted">{t("dashboardIntro")}</p></div>
       <div className="dashboard-actions"><PreferencesControls/><button className="button outline" disabled={busy || !userId} onClick={createFolder}><FolderPlus size={17}/> {t("dashboardNewFolder")}</button>

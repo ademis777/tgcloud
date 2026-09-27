@@ -107,3 +107,18 @@ a { color:inherit; text-decoration:none; } p { line-height:1.7; } h1,h2,h3,p { m
 .auth-divider { display:flex; align-items:center; gap:12px; margin:21px 0; color:var(--muted); font-size:11px; }
 .auth-divider::before,.auth-divider::after { content:""; flex:1; height:1px; background:var(--stroke); }
 :root[data-theme="light"] .telegram-primary { background:#178cc4; color:white; }
+
+/* Signed-in account identity — separate from the personal storage bot connection. */
+.account-card { display:flex; align-items:center; min-width:0; gap:10px; padding:12px 9px; border:1px solid var(--stroke); border-radius:12px; background:var(--panel); }
+.account-avatar { display:grid; place-items:center; flex:0 0 38px; width:38px; height:38px; border-radius:50%; color:#fff; overflow:hidden; background:linear-gradient(140deg,#5f65eb,#21b2da); }
+.account-avatar img { display:block; width:100%; height:100%; object-fit:cover; }
+.account-details { min-width:0; display:flex; flex-direction:column; gap:3px; }
+.account-details strong,.account-details span { display:block; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:12px; }
+.account-details strong { color:var(--text); }
+.account-details span { color:var(--muted); font-size:11px; }
+.account-details small { color:var(--cyan); font-size:10px; }
+@media(max-width:640px) {
+  .sidebar-bottom { width:100%; gap:8px; }
+  .account-card { flex:1 1 180px; }
+  .account-details { max-width:180px; }
+}
