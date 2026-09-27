@@ -24,7 +24,7 @@ export async function GET(request: Request, context: Context) {
     const upstream = await fetchTelegramFile(decryptToken(connection.token_ciphertext), f.tg_file_id);
     return new Response(upstream.body, { headers: {
       "Content-Type": preview ? descriptor.contentType : (f.mime_type || "application/octet-stream"),
-      "Content-Disposition": "attachment; filename=\"download\"; filename*=UTF-8''" + encodeURIComponent(f.name),
+      "Content-Disposition": (preview ? "inline" : "attachment") + "; filename=\"download\"; filename*=UTF-8\u0027\u0027" + encodeURIComponent(f.name),
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
     } });
