@@ -45,3 +45,10 @@ test("all six dictionaries remain available in authenticated account settings",(
     assert.ok(translate(locale,"dashboardItems",{count:3}).includes("3"));
   }
 });
+
+test("both deletion modes have unambiguous localized text",()=>{
+  for(const locale of localeCodes){
+    for(const key of ["dashboardRemoveConfirm","dashboardRemoved","dashboardRemoveError","dashboardCatalogOnlyAction","dashboardCatalogOnlyConfirm","dashboardCatalogOnlyRemoved"])
+      assert.ok(translate(locale,key).length>12,locale+" "+key);
+  }
+});

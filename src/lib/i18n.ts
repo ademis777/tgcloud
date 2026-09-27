@@ -112,9 +112,9 @@ const en = {
   dashboardStaging: "Uploading to temporary private storage...",
   dashboardSending: "Sending file to your Telegram channel...", dashboardUploaded: "File saved in Telegram.",
   dashboardUploadError: "Upload failed.", dashboardDownloadError: "Could not download the file.",
-  dashboardRemoveConfirm: "Remove this file from your library? The message may remain in Telegram.",
-  dashboardRemoved: "Removed from library. The Telegram copy may remain.",
-  dashboardRemoveError: "Could not remove the file.", dashboardLoadError: "Could not load your library.",
+  dashboardRemoveConfirm: "Delete this file from Telegram and TG-Cloud? This cannot be undone.",
+  dashboardRemoved: "File deleted from Telegram and from your TG-Cloud library.",
+  dashboardRemoveError: "Telegram deletion could not be completed. Your file is still listed.", dashboardCatalogOnlyAction:"Remove from catalog only", dashboardCatalogOnlyConfirm:"Telegram did not confirm deletion. Remove only the TG-Cloud listing? The file may remain in Telegram; if possible, delete it manually from the channel first.", dashboardCatalogOnlyRemoved:"Catalog entry removed. The Telegram message may still exist.", dashboardLoadError: "Could not load your library.",
   dashboardStorageError: "Could not load storage.", dashboardNoSession: "Sign in again to continue.",
 } as const;
 export type MessageKey = keyof typeof en;
@@ -183,9 +183,9 @@ const ru: Record<MessageKey,string> = {
   dashboardStaging:"Загружаем файл во временное приватное хранилище...",
   dashboardSending:"Передаём файл в ваш Telegram-канал...",dashboardUploaded:"Файл сохранён в Telegram.",
   dashboardUploadError:"Ошибка загрузки.",dashboardDownloadError:"Не удалось скачать файл.",
-  dashboardRemoveConfirm:"Убрать файл из каталога? Сообщение в Telegram может остаться.",
-  dashboardRemoved:"Запись удалена из каталога. Telegram-копия могла сохраниться.",
-  dashboardRemoveError:"Ошибка удаления.",dashboardLoadError:"Ошибка загрузки каталога.",
+  dashboardRemoveConfirm:"Удалить файл из Telegram и TG-Cloud? Это действие необратимо.",
+  dashboardRemoved:"Файл удалён из Telegram и каталога TG-Cloud.",
+  dashboardRemoveError:"Не удалось подтвердить удаление из Telegram. Запись оставлена в каталоге.", dashboardCatalogOnlyAction:"Удалить только из каталога", dashboardCatalogOnlyConfirm:"Telegram не подтвердил удаление. Убрать только запись TG-Cloud? Файл может остаться в Telegram; по возможности сначала удалите его вручную из канала.", dashboardCatalogOnlyRemoved:"Запись удалена из каталога. Сообщение Telegram могло остаться.",dashboardLoadError:"Ошибка загрузки каталога.",
   dashboardStorageError:"Ошибка загрузки хранилища.",dashboardNoSession:"Войдите снова, чтобы продолжить.",
 };
 const uk: Record<MessageKey,string> = {
@@ -251,9 +251,9 @@ const uk: Record<MessageKey,string> = {
   dashboardStaging:"Завантажуємо файл у тимчасове приватне сховище...",
   dashboardSending:"Передаємо файл до вашого Telegram-каналу...",dashboardUploaded:"Файл збережено в Telegram.",
   dashboardUploadError:"Помилка завантаження.",dashboardDownloadError:"Не вдалося завантажити файл.",
-  dashboardRemoveConfirm:"Прибрати файл із каталогу? Повідомлення в Telegram може залишитися.",
-  dashboardRemoved:"Запис видалено з каталогу. Копія в Telegram могла залишитися.",
-  dashboardRemoveError:"Помилка видалення.",dashboardLoadError:"Помилка завантаження каталогу.",
+  dashboardRemoveConfirm:"Видалити файл із Telegram і TG-Cloud? Цю дію неможливо скасувати.",
+  dashboardRemoved:"Файл видалено з Telegram і каталогу TG-Cloud.",
+  dashboardRemoveError:"Не вдалося підтвердити видалення з Telegram. Запис залишився в каталозі.", dashboardCatalogOnlyAction:"Видалити лише з каталогу", dashboardCatalogOnlyConfirm:"Telegram не підтвердив видалення. Прибрати лише запис TG-Cloud? Файл може залишитися в Telegram; за можливості видаліть його з каналу вручну.", dashboardCatalogOnlyRemoved:"Запис видалено з каталогу. Повідомлення Telegram могло залишитися.",dashboardLoadError:"Помилка завантаження каталогу.",
   dashboardStorageError:"Помилка завантаження сховища.",dashboardNoSession:"Увійдіть знову, щоб продовжити.",
 };
 const fr: Record<MessageKey,string> = {
@@ -319,9 +319,9 @@ const fr: Record<MessageKey,string> = {
   dashboardStaging:"Import dans le stockage privé temporaire...",
   dashboardSending:"Envoi du fichier sur votre canal Telegram...",dashboardUploaded:"Fichier enregistré dans Telegram.",
   dashboardUploadError:"Échec de l'import.",dashboardDownloadError:"Téléchargement impossible.",
-  dashboardRemoveConfirm:"Retirer ce fichier du catalogue ? Le message peut rester dans Telegram.",
-  dashboardRemoved:"Entrée retirée du catalogue. La copie Telegram peut subsister.",
-  dashboardRemoveError:"Suppression impossible.",dashboardLoadError:"Chargement du catalogue impossible.",
+  dashboardRemoveConfirm:"Supprimer ce fichier de Telegram et de TG-Cloud ? Cette action est irréversible.",
+  dashboardRemoved:"Fichier supprimé de Telegram et de TG-Cloud.",
+  dashboardRemoveError:"Suppression Telegram non confirmée. L'entrée reste dans le catalogue.", dashboardCatalogOnlyAction:"Retirer uniquement du catalogue", dashboardCatalogOnlyConfirm:"Telegram n'a pas confirmé la suppression. Retirer seulement l'entrée TG-Cloud ? Le fichier peut rester sur Telegram ; supprimez-le manuellement du canal si possible.", dashboardCatalogOnlyRemoved:"Entrée supprimée du catalogue. Le message Telegram peut subsister.",dashboardLoadError:"Chargement du catalogue impossible.",
   dashboardStorageError:"Chargement du stockage impossible.",dashboardNoSession:"Reconnectez-vous pour continuer.",
 };
 const es: Record<MessageKey,string> = {
@@ -387,9 +387,9 @@ const es: Record<MessageKey,string> = {
   dashboardStaging:"Subiendo al almacenamiento privado temporal...",
   dashboardSending:"Enviando a tu canal de Telegram...",dashboardUploaded:"Archivo guardado en Telegram.",
   dashboardUploadError:"Error al subir.",dashboardDownloadError:"No se pudo descargar.",
-  dashboardRemoveConfirm:"¿Quitar el archivo del catálogo? El mensaje puede permanecer en Telegram.",
-  dashboardRemoved:"Entrada retirada. La copia de Telegram puede permanecer.",
-  dashboardRemoveError:"Error al eliminar.",dashboardLoadError:"Error al cargar los archivos.",
+  dashboardRemoveConfirm:"¿Eliminar el archivo de Telegram y TG-Cloud? Esta acción no se puede deshacer.",
+  dashboardRemoved:"Archivo eliminado de Telegram y TG-Cloud.",
+  dashboardRemoveError:"Telegram no confirmó la eliminación. El archivo permanece en el catálogo.", dashboardCatalogOnlyAction:"Quitar solo del catálogo", dashboardCatalogOnlyConfirm:"Telegram no confirmó la eliminación. ¿Quitar únicamente la entrada de TG-Cloud? El archivo puede permanecer en Telegram; si puedes, elimínalo manualmente del canal primero.", dashboardCatalogOnlyRemoved:"Entrada eliminada del catálogo. El mensaje de Telegram puede permanecer.",dashboardLoadError:"Error al cargar los archivos.",
   dashboardStorageError:"Error al cargar el almacenamiento.",dashboardNoSession:"Inicia sesión de nuevo.",
 };
 const de: Record<MessageKey,string> = {
@@ -455,9 +455,9 @@ const de: Record<MessageKey,string> = {
   dashboardStaging:"Datei wird in temporären privaten Speicher hochgeladen...",
   dashboardSending:"Datei wird an deinen Telegram-Kanal gesendet...",dashboardUploaded:"Datei in Telegram gespeichert.",
   dashboardUploadError:"Upload fehlgeschlagen.",dashboardDownloadError:"Datei konnte nicht heruntergeladen werden.",
-  dashboardRemoveConfirm:"Datei aus dem Katalog entfernen? Die Nachricht kann in Telegram bleiben.",
-  dashboardRemoved:"Eintrag entfernt. Die Telegram-Kopie kann bestehen bleiben.",
-  dashboardRemoveError:"Entfernen fehlgeschlagen.",dashboardLoadError:"Bibliothek konnte nicht geladen werden.",
+  dashboardRemoveConfirm:"Datei aus Telegram und TG-Cloud löschen? Dies kann nicht rückgängig gemacht werden.",
+  dashboardRemoved:"Datei aus Telegram und TG-Cloud gelöscht.",
+  dashboardRemoveError:"Telegram hat das Löschen nicht bestätigt. Der Katalogeintrag bleibt erhalten.", dashboardCatalogOnlyAction:"Nur aus dem Katalog entfernen", dashboardCatalogOnlyConfirm:"Telegram hat das Löschen nicht bestätigt. Nur den TG-Cloud-Eintrag entfernen? Die Datei kann in Telegram bleiben; lösche sie nach Möglichkeit zuerst manuell aus dem Kanal.", dashboardCatalogOnlyRemoved:"Katalogeintrag entfernt. Die Telegram-Nachricht kann weiterhin bestehen.",dashboardLoadError:"Bibliothek konnte nicht geladen werden.",
   dashboardStorageError:"Speicher konnte nicht geladen werden.",dashboardNoSession:"Bitte erneut anmelden.",
 };
 const dictionaries: Record<Locale,Record<MessageKey,string>> = {en,uk,ru,fr,es,de};

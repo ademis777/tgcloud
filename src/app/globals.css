@@ -145,3 +145,7 @@ a { color:inherit; text-decoration:none; } p { line-height:1.7; } h1,h2,h3,p { m
 @media(max-width:640px){.settings-page{padding-bottom:40px}.settings-panel{padding:19px}.settings-form select,.settings-form button{width:100%;max-width:none}}
 :root[data-theme="light"] .settings-panel { background:#fff; border-color:#cbd5e5; }
 :root[data-theme="light"] .settings-form select { background:#fff; border-color:#bfcde0; color:#1d2c47; }
+
+.catalog-fallback { margin-top:13px; display:flex; }
+.catalog-fallback .button { border:1px solid currentColor; }
+:root[data-theme="light"] .catalog-fallback .button { background:#fff; color:#8e233f; }

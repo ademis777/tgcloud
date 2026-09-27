@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [catalogOnlyFile, setCatalogOnlyFile] = useState<FileRow | null>(null);
   const refresh = useCallback(async () => {
     const db = browserDb();
     const [{ data: f, error: fe }, { data: d, error: de }, status] = await Promise.all([
@@ -90,10 +91,28 @@ export default function Dashboard() {
   }
   async function remove(file: FileRow) {
     if (!window.confirm(t("dashboardRemoveConfirm"))) return;
+    setBusy(true); setError(""); setNotice(""); setCatalogOnlyFile(null);
+    try {
+      const result = await api<{telegramDeleted:boolean; removedFromCatalog:boolean}>("/api/files/" + encodeURIComponent(file.id), "DELETE");
+      setNotice(t(result.telegramDeleted ? "dashboardRemoved" : "dashboardCatalogOnlyRemoved"));
+      await refresh();
+    } catch (e) {
+      setError(t("dashboardRemoveError") + " " + (e instanceof Error ? e.message : ""));
+      setCatalogOnlyFile(file);
+    } finally { setBusy(false); }
+  }
+  async function removeCatalogOnly() {
+    const file = catalogOnlyFile;
+    if (!file || busy || !window.confirm(t("dashboardCatalogOnlyConfirm"))) return;
     setBusy(true); setError(""); setNotice("");
-    try { await api("/api/files/" + encodeURIComponent(file.id), "DELETE"); setNotice(t("dashboardRemoved")); await refresh(); }
-    catch (e) { setError(e instanceof Error ? e.message : t("dashboardRemoveError")); }
-    finally { setBusy(false); }
+    try {
+      await api("/api/files/" + encodeURIComponent(file.id) + "?catalogOnly=1", "DELETE");
+      setCatalogOnlyFile(null);
+      setNotice(t("dashboardCatalogOnlyRemoved"));
+      await refresh();
+    } catch (e) {
+      setError(t("dashboardRemoveError") + " " + (e instanceof Error ? e.message : ""));
+    } finally { setBusy(false); }
   }
   async function logout() { await browserDb().auth.signOut(); router.replace("/auth"); }
   return <main className="app-layout">
@@ -115,7 +134,9 @@ export default function Dashboard() {
       <div className="dashboard-actions"><PreferencesControls/><button className="button outline" disabled={busy || !userId} onClick={createFolder}><FolderPlus size={17}/> {t("dashboardNewFolder")}</button>
         <label className={"button primary " + (busy || !userId ? "disabled" : "")}><UploadCloud size={17}/> {t("dashboardUpload")}<input type="file" hidden disabled={busy || !userId} onChange={upload}/></label></div></div>
       {!connection.connected && <div className="setup-banner"><div><strong>{t("dashboardSetup")}</strong><p>{t("dashboardSetupBody")}</p></div><Link href="/connect" className="button primary">{t("dashboardConfigure")} →</Link></div>}
-      {error && <div className="notice error" role="alert">{error}</div>}
+      {error && <div className="notice error" role="alert">{error}
+        {catalogOnlyFile && <div className="catalog-fallback"><button type="button" className="button outline" disabled={busy} onClick={removeCatalogOnly}>{t("dashboardCatalogOnlyAction")}</button></div>}
+      </div>}
       {notice && <div className="notice success" role="status">{notice}</div>}
       {selected && <button className="text-button align-left" onClick={() => setSelected(parent)}>{t("dashboardBack")}</button>}
       <div className="catalog-title"><h2>{t("dashboardCatalog")}</h2><span>{t("dashboardItems",{count:visibleFolders.length + visibleFiles.length})}</span></div>
