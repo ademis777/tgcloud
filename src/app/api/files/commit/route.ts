@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       const { data: folder } = await db.from("folders").select("id").eq("id", folderId).eq("user_id", user.id).maybeSingle();
       if (!folder) return failure("Folder not found.", 404);
     }
-    const { data: connection } = await db.from("bot_connections").select("channel_id, token_ciphertext").eq("user_id", user.id).maybeSingle();
+    const { data: connection } = await db.from("bot_connections").select("channel_id, bot_id, token_ciphertext").eq("user_id", user.id).maybeSingle();
     if (!connection) return failure("Connect your Telegram storage first.", 409);
     const { data: blob, error: downloadError } = await db.storage.from("pending-files").download(path);
     if (downloadError || !blob) return failure("Staged file not found.", 404);
@@ -36,7 +36,9 @@ export async function POST(request: Request) {
       const sent = await sendDocument(decryptToken(connection.token_ciphertext), connection.channel_id, blob, name);
       if (!sent.document?.file_id) throw new Error("Telegram did not return a document ID.");
       const { error: updateError } = await db.from("files").update({
-        tg_file_id: sent.document.file_id, tg_message_id: sent.message_id, status: "ready", last_error: null,
+        tg_file_id: sent.document.file_id, tg_message_id: sent.message_id,
+        tg_chat_id: connection.channel_id, tg_bot_id: connection.bot_id,
+        status: "ready", last_error: null,
       }).eq("id", record.id).eq("user_id", user.id);
       if (updateError) return failure("File reached Telegram but its catalog update needs reconciliation. Do not upload it again.", 500);
       const { error: cleanupError } = await db.storage.from("pending-files").remove([path]);
