@@ -101,13 +101,14 @@ export default function Dashboard() {
       <span className="sidebar-label">{t("dashboardWorkspace")}</span>
       <button className={!selected ? "side-link active" : "side-link"} onClick={() => setSelected(null)}><File size={18}/> {t("dashboardFiles")}</button>
       <Link className="side-link" href="/connect"><Settings2 size={18}/> {t("dashboardConnection")}</Link>
+      <Link className="side-link" href="/settings"><UserRound size={18}/> {t("settings")}</Link>
       <div className="sidebar-bottom">
-        {profile && <div className="account-card" aria-label={t("dashboardAccount")}>
+        {profile && <Link href="/settings" className="account-card account-card-link" aria-label={t("dashboardAccount")}>
           <div className="account-avatar">
             {profile.avatarUrl && !avatarFailed ? <img src={profile.avatarUrl} alt="" referrerPolicy="no-referrer" onError={() => setAvatarFailed(true)} /> : <UserRound size={20} aria-hidden="true"/>}
           </div>
           <div className="account-details"><strong title={profile.displayName}>{profile.displayName}</strong><span title={profile.userLabel}>{profile.userLabel}</span><small>{t(profile.authMethod === "telegram" ? "dashboardTelegramAccount" : "dashboardEmailAccount")}</small></div>
-        </div>}
+        </Link>}
         <div className="connection">{connection.connected ? t("dashboardConnected") : t("dashboardDisconnected")}</div><button className="side-link" onClick={logout}><LogOut size={18}/> {t("dashboardLogout")}</button></div>
     </aside>
     <section className="dashboard-content"><div className="dashboard-top"><div><div className="eyebrow">{t("dashboardTitle")}</div><h1>{selectedName}</h1><p className="muted">{t("dashboardIntro")}</p></div>
