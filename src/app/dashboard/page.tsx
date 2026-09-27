@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(() => new Set());
   const [bulkProgress, setBulkProgress] = useState<BulkDeleteProgress | null>(null);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [uploadFailures, setUploadFailures] = useState<{ id: string; name: string; error: string | null }[]>([]);
   const refresh = useCallback(async () => {
     const db = browserDb();
     const [{ data: f, error: fe }, { data: d, error: de }, status] = await Promise.all([
@@ -139,7 +140,7 @@ export default function Dashboard() {
       return;
     }
     const destination = selected;
-    setBusy(true); setError(""); setNotice(""); setUploadProgress(null); setBulkProgress(null);
+    setBusy(true); setError(""); setNotice(""); setUploadProgress(null); setBulkProgress(null); setUploadFailures([]);
     try {
       const result = await runUploadQueue(batch, async file => {
         const safeName = file.name.replace(/[/\\\\\u0000-\u001f]/g, "_").slice(0, 200) || "file";
@@ -152,6 +153,7 @@ export default function Dashboard() {
         await api("/api/files/commit", "POST", { path, name: safeName, folderId: destination });
       }, setUploadProgress, t("dashboardTooLarge"));
       if (result.failed) {
+        setUploadFailures(result.items.filter(item => item.status === "failed").map(item => ({ id: item.id, name: item.name, error: item.error })));
         setError(t("uploadBatchPartial", { uploaded: result.uploaded, failed: result.failed }));
       } else {
         setNotice(t("uploadBatchComplete", { count: result.uploaded }));
@@ -161,6 +163,7 @@ export default function Dashboard() {
       setError(t("uploadBatchError") + (e instanceof Error ? " " + e.message : ""));
       await refresh().catch(() => {});
     } finally {
+      setUploadProgress(null);
       setBusy(false);
     }
   }
@@ -230,6 +233,7 @@ export default function Dashboard() {
     } catch (e) {
       setError(t("bulkDeleteRefreshError") + (e instanceof Error ? " " + e.message : ""));
     } finally {
+      setBulkProgress(null);
       setBusy(false);
     }
   }
@@ -253,7 +257,10 @@ export default function Dashboard() {
       <div className="dashboard-actions"><PreferencesControls/><button className="button outline" disabled={busy || !userId} onClick={createFolder}><FolderPlus size={17}/> {t("dashboardNewFolder")}</button>
         <label className={"button primary " + (busy || !userId ? "disabled" : "")}><UploadCloud size={17}/> {t("dashboardUpload")}<input type="file" multiple hidden disabled={busy || !userId || !connection.connected} onChange={upload}/></label></div></div>
       {!connection.connected && <div className="setup-banner"><div><strong>{t("dashboardSetup")}</strong><p>{t("dashboardSetupBody")}</p></div><Link href="/connect" className="button primary">{t("dashboardConfigure")} →</Link></div>}
-      {error && <div className="notice error" role="alert">{error}
+      {error && <div className="notice error" role="alert"><div>{error}
+        {uploadFailures.length > 0 && <ul className="upload-failure-summary">{uploadFailures.map(item =>
+          <li key={item.id}><strong>{item.name}</strong>{item.error ? ": " + item.error : ""}</li>
+        )}</ul>}</div>
         {catalogOnlyFile && <div className="catalog-fallback"><button type="button" className="button outline" disabled={busy} onClick={removeCatalogOnly}>{t("dashboardCatalogOnlyAction")}</button></div>}
       </div>}
       {notice && <div className="notice success" role="status">{notice}</div>}
