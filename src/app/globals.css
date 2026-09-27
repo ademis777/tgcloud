@@ -97,3 +97,13 @@ a { color:inherit; text-decoration:none; } p { line-height:1.7; } h1,h2,h3,p { m
   .sidebar-bottom .connection { padding:8px 4px; }
   .sidebar-bottom .side-link { width:auto; }
 }
+
+/* Telegram is the primary auth option once the OIDC provider is enabled. */
+.telegram-auth-section { margin:24px 0 12px; }
+.telegram-primary { background:#229ed9; color:white; border-color:#229ed9; }
+.telegram-primary:hover:not(:disabled) { background:#148abd; }
+.telegram-primary:disabled { opacity:.65; }
+.auth-privacy { font-size:11px !important; line-height:1.5; margin:10px 0 0; text-align:center; }
+.auth-divider { display:flex; align-items:center; gap:12px; margin:21px 0; color:var(--muted); font-size:11px; }
+.auth-divider::before,.auth-divider::after { content:""; flex:1; height:1px; background:var(--stroke); }
+:root[data-theme="light"] .telegram-primary { background:#178cc4; color:white; }

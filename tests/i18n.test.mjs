@@ -29,3 +29,11 @@ test("five public locales; Ukrainian translations retained",()=>{
     assert.notEqual(translate(locale,"heroTitle1").length,0);
   }
 });
+
+test("auth copy is localized for every published language",()=>{
+  for(const locale of localeCodes) {
+    assert.ok(translate(locale,"authTelegram").length>0);
+    assert.ok(translate(locale,"authTelegramUnavailable").length>0);
+    assert.ok(translate(locale,"authTelegramError").length>0);
+  }
+});

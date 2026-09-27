@@ -39,3 +39,7 @@
 ## Operational limitations
 
 Vercel is web/API only. A dedicated worker and local Bot API server are a separate deployment for larger files. Supabase private storage is temporary staging, not the final user data store. Payment integration and complete account recovery are not part of this foundation.
+
+## Telegram login
+
+Follow [TELEGRAM_LOGIN.md](./TELEGRAM_LOGIN.md) to set up a separate platform bot, its OIDC credentials, the Supabase custom provider and the production-only feature flag. Email sign-in remains the fallback while the external provider is not configured.
