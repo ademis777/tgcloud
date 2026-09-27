@@ -7,6 +7,9 @@ import { browserDb } from "@/lib/supabase-browser";
 import { accessToken, api } from "@/lib/browser-api";
 import { PreferencesControls, usePreferences } from "@/components/preferences";
 import { accountProfile, type AccountProfile } from "@/lib/account-profile";
+import { FilePreviewModal, FileThumbnail } from "@/components/file-preview";
+import { previewDescriptor } from "@/lib/file-preview";
+import { Eye } from "lucide-react";
 
 type FolderRow = { id: string; parent_id: string | null; name: string };
 type FileRow = { id: string; name: string; size_bytes: number; mime_type: string; folder_id: string | null; status: "pending" | "ready" | "failed"; last_error: string | null; created_at: string };
@@ -27,6 +30,7 @@ export default function Dashboard() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [catalogOnlyFile, setCatalogOnlyFile] = useState<FileRow | null>(null);
+  const [previewFile, setPreviewFile] = useState<FileRow | null>(null);
   const refresh = useCallback(async () => {
     const db = browserDb();
     const [{ data: f, error: fe }, { data: d, error: de }, status] = await Promise.all([
@@ -188,10 +192,11 @@ export default function Dashboard() {
           </div>
         </div>)}</div>}
       {visibleFiles.length > 0 && <div className="file-table"><div className="file-head"><span>{t("dashboardFileName")}</span><span>{t("dashboardSize")}</span><span>{t("dashboardStatus")}</span><span>{t("dashboardActions")}</span></div>
-        {visibleFiles.map(f => <div className="file-row" key={f.id}><span className="file-name"><span className="file-glyph"><File size={18}/></span><span title={f.name}>{f.name}</span></span><span className="muted">{prettySize(f.size_bytes)}</span>
+        {visibleFiles.map(f => <div className="file-row" key={f.id}><span className="file-name"><FileThumbnail file={f}/><button type="button" className="file-name-link" title={f.name} disabled={f.status !== "ready" || previewDescriptor(f.mime_type,f.name).kind === "unsupported"} onClick={() => setPreviewFile(f)}>{f.name}</button></span><span className="muted">{prettySize(f.size_bytes)}</span>
           <span className={f.status === "ready" ? "badge ready" : f.status === "failed" ? "badge failed" : "badge"} title={f.last_error || ""}>{f.status === "ready" ? t("dashboardReady") : f.status === "failed" ? t("dashboardFailed") : t("dashboardPending")}</span>
-          <span className="file-buttons"><button title={t("dashboardDownload")} disabled={f.status !== "ready"} onClick={() => download(f)}><ArrowDownToLine size={18}/></button><button title={t("dashboardRemove")} disabled={busy} onClick={() => remove(f)}><Trash2 size={17}/></button></span></div>)}</div>}
+          <span className="file-buttons"><button title={t("previewOpen")} aria-label={t("previewOpen")+": "+f.name} disabled={f.status !== "ready" || previewDescriptor(f.mime_type,f.name).kind === "unsupported"} onClick={() => setPreviewFile(f)}><Eye size={18}/></button><button title={t("dashboardDownload")} disabled={f.status !== "ready"} onClick={() => download(f)}><ArrowDownToLine size={18}/></button><button title={t("dashboardRemove")} disabled={busy} onClick={() => remove(f)}><Trash2 size={17}/></button></span></div>)}</div>}
       <div className="dashboard-footnote">{t("dashboardLimit")}</div>
+      {previewFile && <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} onDownload={download}/>}
     </section>
   </main>;
 }
