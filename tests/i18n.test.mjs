@@ -52,3 +52,13 @@ test("both deletion modes have unambiguous localized text",()=>{
       assert.ok(translate(locale,key).length>12,locale+" "+key);
   }
 });
+
+test("folder actions have translations and interpolated deletion counts",()=>{
+ for(const locale of localeCodes) {
+   for(const key of ["dashboardFolderRename","dashboardFolderDelete","dashboardFolderRenamePrompt","dashboardFolderRenamed","dashboardFolderRenameError","dashboardFolderDeleteConfirm","dashboardFolderDeleteConfirmNonEmpty","dashboardFolderDeleted","dashboardFolderDeletedWithContents","dashboardFolderDeleteError"]) {
+     assert.ok(translate(locale,key).length>5,locale+" "+key);
+   }
+   const message=translate(locale,"dashboardFolderDeleteConfirmNonEmpty",{name:"Photos",files:3,folders:2});
+   assert.ok(message.includes("Photos") && message.includes("3") && message.includes("2"),locale);
+ }
+});

@@ -2,7 +2,7 @@
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowDownToLine, Cloud, File, Folder, FolderPlus, HardDriveUpload, LogOut, Settings2, Trash2, UploadCloud, UserRound } from "lucide-react";
+import { ArrowDownToLine, Cloud, File, Folder, FolderPlus, HardDriveUpload, LogOut, Settings2, Trash2, UploadCloud, UserRound, Pencil } from "lucide-react";
 import { browserDb } from "@/lib/supabase-browser";
 import { accessToken, api } from "@/lib/browser-api";
 import { PreferencesControls, usePreferences } from "@/components/preferences";
@@ -61,6 +61,42 @@ export default function Dashboard() {
     const { error: e } = await browserDb().from("folders").insert({ user_id: userId, parent_id: selected, name });
     if (e) setError(e.message); else { setNotice(t("dashboardFolderCreated")); await refresh().catch(x => setError(String(x))); }
     setBusy(false);
+  }
+  async function renameFolder(folder: FolderRow) {
+    const entered = window.prompt(t("dashboardFolderRenamePrompt"), folder.name);
+    if (entered === null) return;
+    const name = entered.trim();
+    if (!name || name === folder.name) return;
+    if (name.length > 120) { setError(t("dashboardFolderLong")); return; }
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const { data, error: updateError } = await browserDb().from("folders")
+        .update({ name }).eq("id", folder.id).eq("user_id", userId).select("id").single();
+      if (updateError || !data) throw updateError || new Error(t("dashboardFolderRenameError"));
+      setNotice(t("dashboardFolderRenamed"));
+      await refresh();
+    } catch (e) {
+      setError(t("dashboardFolderRenameError") + " " + (e instanceof Error ? e.message : ""));
+    } finally { setBusy(false); }
+  }
+  async function deleteFolder(folder: FolderRow) {
+    const directFiles = files.filter(f => f.folder_id === folder.id).length;
+    const childFolders = folders.filter(f => f.parent_id === folder.id).length;
+    const hasContents = directFiles > 0 || childFolders > 0;
+    if (!window.confirm(t(hasContents ? "dashboardFolderDeleteConfirmNonEmpty" : "dashboardFolderDeleteConfirm", {
+      name: folder.name, files: directFiles, folders: childFolders,
+    }))) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const { error: deletionError } = await browserDb()
+        .rpc("delete_folder_keep_contents", { p_folder_id: folder.id });
+      if (deletionError) throw deletionError;
+      if (selected === folder.id) setSelected(folder.parent_id);
+      setNotice(t(hasContents ? "dashboardFolderDeletedWithContents" : "dashboardFolderDeleted"));
+      await refresh();
+    } catch (e) {
+      setError(t("dashboardFolderDeleteError") + " " + (e instanceof Error ? e.message : ""));
+    } finally { setBusy(false); }
   }
   async function upload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]; event.target.value = "";
@@ -141,7 +177,16 @@ export default function Dashboard() {
       {selected && <button className="text-button align-left" onClick={() => setSelected(parent)}>{t("dashboardBack")}</button>}
       <div className="catalog-title"><h2>{t("dashboardCatalog")}</h2><span>{t("dashboardItems",{count:visibleFolders.length + visibleFiles.length})}</span></div>
       {visibleFolders.length === 0 && visibleFiles.length === 0 && <div className="empty"><HardDriveUpload size={38}/><h3>{t("dashboardEmpty")}</h3><p>{t("dashboardEmptyBody")}</p></div>}
-      {visibleFolders.length > 0 && <div className="folder-grid">{visibleFolders.map(f => <button className="folder-tile" key={f.id} onClick={() => setSelected(f.id)}><Folder size={23}/><span>{f.name}</span> →</button>)}</div>}
+      {visibleFolders.length > 0 && <div className="folder-grid">{visibleFolders.map(f =>
+        <div className="folder-tile" key={f.id}>
+          <button type="button" className="folder-open" onClick={() => setSelected(f.id)} disabled={busy} title={f.name}>
+            <Folder size={23}/><span>{f.name}</span>
+          </button>
+          <div className="folder-actions">
+            <button type="button" disabled={busy} onClick={() => renameFolder(f)} title={t("dashboardFolderRename")} aria-label={t("dashboardFolderRename") + ": " + f.name}><Pencil size={16}/></button>
+            <button type="button" disabled={busy} onClick={() => deleteFolder(f)} title={t("dashboardFolderDelete")} aria-label={t("dashboardFolderDelete") + ": " + f.name}><Trash2 size={16}/></button>
+          </div>
+        </div>)}</div>}
       {visibleFiles.length > 0 && <div className="file-table"><div className="file-head"><span>{t("dashboardFileName")}</span><span>{t("dashboardSize")}</span><span>{t("dashboardStatus")}</span><span>{t("dashboardActions")}</span></div>
         {visibleFiles.map(f => <div className="file-row" key={f.id}><span className="file-name"><span className="file-glyph"><File size={18}/></span><span title={f.name}>{f.name}</span></span><span className="muted">{prettySize(f.size_bytes)}</span>
           <span className={f.status === "ready" ? "badge ready" : f.status === "failed" ? "badge failed" : "badge"} title={f.last_error || ""}>{f.status === "ready" ? t("dashboardReady") : f.status === "failed" ? t("dashboardFailed") : t("dashboardPending")}</span>
