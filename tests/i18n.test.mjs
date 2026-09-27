@@ -62,3 +62,15 @@ test("folder actions have translations and interpolated deletion counts",()=>{
    assert.ok(message.includes("Photos") && message.includes("3") && message.includes("2"),locale);
  }
 });
+
+test("bulk delete confirmation and progress are translated with accurate counts",()=>{
+ for(const locale of localeCodes){
+   for(const key of ["bulkActions","bulkSelectAll","bulkSelectFile","bulkSelected","bulkClear","bulkDeleteButton","bulkDeleteConfirm","bulkProgress","bulkDeleteComplete","bulkDeletePartial","bulkDeleteRefreshError"]){
+     assert.ok(translate(locale,key).length>=5,locale+" "+key);
+   }
+   const confirm=translate(locale,"bulkDeleteConfirm",{count:200});
+   const progress=translate(locale,"bulkProgress",{done:50,total:200,deleted:45,failed:5});
+   assert.ok(confirm.includes("200"),locale+" confirm");
+   assert.ok(["50","200","45","5"].every(number=>progress.includes(number)),locale+" progress");
+ }
+});
