@@ -37,7 +37,7 @@ export function FileThumbnail({file}:{file:PreviewFile}){
  },[file.id,file.status,file.name,file.mime_type,kind]);
  return <span className="file-glyph preview-glyph">{url?<img src={url} alt="" loading="lazy"/>:<FileIconFor kind={kind}/>}</span>;
 }
-export function FilePreviewModal({file,onClose,onDownload}:{file:PreviewFile;onClose:()=>void;onDownload:(file:PreviewFile)=>void}){
+export function FilePreviewModal({file,onClose,onDownload}:{file:PreviewFile;onClose:()=>void;onDownload:()=>void}){
  const {t}=usePreferences();
  const descriptor=previewDescriptor(file.mime_type,file.name);
  const [state,setState]=useState<{url:string|null;text:string|null;loading:boolean;error:boolean}>({url:null,text:null,loading:true,error:false});
@@ -66,7 +66,7 @@ export function FilePreviewModal({file,onClose,onDownload}:{file:PreviewFile;onC
    <header className="preview-header">
     <strong className="preview-heading" title={file.name}><FileIconFor kind={descriptor.kind}/>{file.name}</strong>
     <div className="preview-actions">
-     <button type="button" className="button outline" onClick={()=>onDownload(file)}><ArrowDownToLine size={16}/>{t("dashboardDownload")}</button>
+     <button type="button" className="button outline" onClick={onDownload}><ArrowDownToLine size={16}/>{t("dashboardDownload")}</button>
      <button type="button" className="preview-close" onClick={onClose} aria-label={t("previewClose")}><X size={20}/></button>
     </div>
    </header>
