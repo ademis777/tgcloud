@@ -49,6 +49,7 @@ export function detectLocale(cookie: string | undefined, country: string | null,
 }
 
 const en = {
+  previewOpen:"Preview", previewClose:"Close preview", previewLoading:"Loading preview...", previewError:"Could not load the preview. You can still download this file.", previewUnsupported:"Preview is not available for this file type.",
   settings:"Settings", settingsHeading:"Account settings", settingsDescription:"Personalize TG-Cloud for your account.", settingsAccount:"Signed in as", settingsLanguage:"Account language", settingsLanguageHelp:"All six languages are available here, regardless of your location. This preference is saved to your account and restored on other devices.", settingsLanguageSave:"Save language", settingsLanguageSaving:"Saving...", settingsLanguageSaved:"Language preference saved.", settingsLanguageLoadError:"Could not load your settings.", settingsLanguageSaveError:"Could not save your preference. Please retry.", settingsSignIn:"Sign in to access account settings.",
   language: "Language", themeLight: "Light theme", themeDark: "Dark theme",
   navHow: "How it works", navSecurity: "Security", navLogin: "Sign in",
@@ -122,6 +123,7 @@ export type MessageKey = keyof typeof en;
 
 // Dictionaries are checked against the English catalog at build time.
 const ru: Record<MessageKey,string> = {
+  previewOpen:"Просмотреть", previewClose:"Закрыть просмотр", previewLoading:"Загружаем предпросмотр...", previewError:"Не удалось загрузить предпросмотр. Файл можно скачать.", previewUnsupported:"Предпросмотр этого типа файлов недоступен.",
   settings:"Настройки", settingsHeading:"Настройки аккаунта", settingsDescription:"Персональные настройки TG-Cloud.", settingsAccount:"Вы вошли как", settingsLanguage:"Язык аккаунта", settingsLanguageHelp:"Здесь доступны все шесть языков независимо от местоположения. Выбор сохраняется в аккаунте и восстанавливается на других устройствах.", settingsLanguageSave:"Сохранить язык", settingsLanguageSaving:"Сохраняем...", settingsLanguageSaved:"Язык аккаунта сохранён.", settingsLanguageLoadError:"Не удалось загрузить настройки.", settingsLanguageSaveError:"Не удалось сохранить язык. Повторите попытку.", settingsSignIn:"Войдите в аккаунт, чтобы открыть настройки.",
   language:"Язык",themeLight:"Светлая тема",themeDark:"Тёмная тема",
   navHow:"Как работает",navSecurity:"Безопасность",navLogin:"Войти",
@@ -191,6 +193,7 @@ const ru: Record<MessageKey,string> = {
   dashboardStorageError:"Ошибка загрузки хранилища.",dashboardNoSession:"Войдите снова, чтобы продолжить.",
 };
 const uk: Record<MessageKey,string> = {
+  previewOpen:"Переглянути", previewClose:"Закрити перегляд", previewLoading:"Завантажуємо попередній перегляд...", previewError:"Не вдалося завантажити перегляд. Файл можна завантажити.", previewUnsupported:"Перегляд цього типу файлу недоступний.",
   settings:"Налаштування", settingsHeading:"Налаштування акаунта", settingsDescription:"Персоналізуйте TG-Cloud для свого акаунта.", settingsAccount:"Ви увійшли як", settingsLanguage:"Мова акаунта", settingsLanguageHelp:"Тут доступні всі шість мов незалежно від місцеперебування. Вибір зберігається в акаунті та відновлюється на інших пристроях.", settingsLanguageSave:"Зберегти мову", settingsLanguageSaving:"Зберігаємо...", settingsLanguageSaved:"Мову акаунта збережено.", settingsLanguageLoadError:"Не вдалося завантажити налаштування.", settingsLanguageSaveError:"Не вдалося зберегти мову. Спробуйте ще раз.", settingsSignIn:"Увійдіть до акаунта, щоб відкрити налаштування.",
   language:"Мова",themeLight:"Світла тема",themeDark:"Темна тема",
   navHow:"Як це працює",navSecurity:"Безпека",navLogin:"Увійти",
@@ -260,6 +263,7 @@ const uk: Record<MessageKey,string> = {
   dashboardStorageError:"Помилка завантаження сховища.",dashboardNoSession:"Увійдіть знову, щоб продовжити.",
 };
 const fr: Record<MessageKey,string> = {
+  previewOpen:"Aperçu", previewClose:"Fermer l'aperçu", previewLoading:"Chargement de l'aperçu...", previewError:"Impossible de charger l'aperçu. Vous pouvez toujours télécharger ce fichier.", previewUnsupported:"Aucun aperçu pour ce type de fichier.",
   settings:"Paramètres", settingsHeading:"Paramètres du compte", settingsDescription:"Personnalisez TG-Cloud pour votre compte.", settingsAccount:"Connecté en tant que", settingsLanguage:"Langue du compte", settingsLanguageHelp:"Les six langues sont disponibles ici, quel que soit votre emplacement. Ce choix est enregistré dans votre compte et rétabli sur vos autres appareils.", settingsLanguageSave:"Enregistrer la langue", settingsLanguageSaving:"Enregistrement...", settingsLanguageSaved:"Langue du compte enregistrée.", settingsLanguageLoadError:"Impossible de charger les paramètres.", settingsLanguageSaveError:"Impossible d'enregistrer la langue. Réessayez.", settingsSignIn:"Connectez-vous pour accéder aux paramètres du compte.",
   language:"Langue",themeLight:"Thème clair",themeDark:"Thème sombre",
   navHow:"Fonctionnement",navSecurity:"Sécurité",navLogin:"Connexion",
@@ -329,6 +333,7 @@ const fr: Record<MessageKey,string> = {
   dashboardStorageError:"Chargement du stockage impossible.",dashboardNoSession:"Reconnectez-vous pour continuer.",
 };
 const es: Record<MessageKey,string> = {
+  previewOpen:"Vista previa", previewClose:"Cerrar vista previa", previewLoading:"Cargando vista previa...", previewError:"No se pudo cargar la vista previa. Puedes descargar el archivo.", previewUnsupported:"Vista previa no disponible para este tipo de archivo.",
   settings:"Configuración", settingsHeading:"Configuración de la cuenta", settingsDescription:"Personaliza TG-Cloud para tu cuenta.", settingsAccount:"Has iniciado sesión como", settingsLanguage:"Idioma de la cuenta", settingsLanguageHelp:"Los seis idiomas están disponibles aquí independientemente de tu ubicación. Se guardará tu elección y se restaurará en otros dispositivos.", settingsLanguageSave:"Guardar idioma", settingsLanguageSaving:"Guardando...", settingsLanguageSaved:"Se ha guardado el idioma.", settingsLanguageLoadError:"No se pudo cargar la configuración.", settingsLanguageSaveError:"No se pudo guardar el idioma. Inténtalo de nuevo.", settingsSignIn:"Inicia sesión para acceder a la configuración.",
   language:"Idioma",themeLight:"Tema claro",themeDark:"Tema oscuro",
   navHow:"Cómo funciona",navSecurity:"Seguridad",navLogin:"Iniciar sesión",
@@ -398,6 +403,7 @@ const es: Record<MessageKey,string> = {
   dashboardStorageError:"Error al cargar el almacenamiento.",dashboardNoSession:"Inicia sesión de nuevo.",
 };
 const de: Record<MessageKey,string> = {
+  previewOpen:"Vorschau", previewClose:"Vorschau schließen", previewLoading:"Vorschau wird geladen...", previewError:"Vorschau konnte nicht geladen werden. Die Datei kann weiterhin heruntergeladen werden.", previewUnsupported:"Für diesen Dateityp ist keine Vorschau verfügbar.",
   settings:"Einstellungen", settingsHeading:"Kontoeinstellungen", settingsDescription:"Personalisiere TG-Cloud für dein Konto.", settingsAccount:"Angemeldet als", settingsLanguage:"Kontosprache", settingsLanguageHelp:"Alle sechs Sprachen stehen hier unabhängig von deinem Standort zur Verfügung. Die Auswahl wird in deinem Konto gespeichert und auf anderen Geräten wiederhergestellt.", settingsLanguageSave:"Sprache speichern", settingsLanguageSaving:"Speichert...", settingsLanguageSaved:"Kontosprache gespeichert.", settingsLanguageLoadError:"Einstellungen konnten nicht geladen werden.", settingsLanguageSaveError:"Sprache konnte nicht gespeichert werden. Bitte erneut versuchen.", settingsSignIn:"Melde dich an, um die Kontoeinstellungen zu öffnen.",
   language:"Sprache",themeLight:"Helles Design",themeDark:"Dunkles Design",
   navHow:"So funktioniert es",navSecurity:"Sicherheit",navLogin:"Anmelden",
