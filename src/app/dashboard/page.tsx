@@ -196,7 +196,7 @@ export default function Dashboard() {
           <span className={f.status === "ready" ? "badge ready" : f.status === "failed" ? "badge failed" : "badge"} title={f.last_error || ""}>{f.status === "ready" ? t("dashboardReady") : f.status === "failed" ? t("dashboardFailed") : t("dashboardPending")}</span>
           <span className="file-buttons"><button title={t("previewOpen")} aria-label={t("previewOpen")+": "+f.name} disabled={f.status !== "ready" || previewDescriptor(f.mime_type,f.name).kind === "unsupported"} onClick={() => setPreviewFile(f)}><Eye size={18}/></button><button title={t("dashboardDownload")} disabled={f.status !== "ready"} onClick={() => download(f)}><ArrowDownToLine size={18}/></button><button title={t("dashboardRemove")} disabled={busy} onClick={() => remove(f)}><Trash2 size={17}/></button></span></div>)}</div>}
       <div className="dashboard-footnote">{t("dashboardLimit")}</div>
-      {previewFile && <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} onDownload={download}/>}
+      {previewFile && <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} onDownload={()=>download(previewFile)}/>}
     </section>
   </main>;
 }
