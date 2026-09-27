@@ -240,3 +240,21 @@ a { color:inherit; text-decoration:none; } p { line-height:1.7; } h1,h2,h3,p { m
 .preview-glyph { position:relative; }
 .video-thumb-play { position:absolute; inset:auto 3px 3px auto; display:grid; place-items:center; width:20px; height:20px; border-radius:50%; background:#101b32d9; color:white; border:1px solid #ffffff8c; pointer-events:none; }
 .video-thumb-play svg { margin-left:1px; }
+
+/* File UX: thumbnails open preview; selection is grouped with right-side actions. */
+.file-head,.file-row { grid-template-columns:minmax(170px,1fr) 90px 95px 154px; }
+.file-thumbnail-button { display:grid; place-items:center; flex:0 0 43px; width:43px; height:43px; margin:0; padding:0; border:0; border-radius:8px; overflow:hidden; color:inherit; background:transparent; }
+.file-thumbnail-button .preview-glyph { width:43px; height:43px; }
+.file-thumbnail-button:hover:not(:disabled) .preview-glyph { outline:2px solid var(--cyan); outline-offset:-2px; }
+.file-thumbnail-button:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+.file-thumbnail-button:disabled { cursor:default; }
+.file-actions-head { display:flex; align-items:center; justify-content:space-between; gap:4px; min-width:0; }
+.file-actions-head .file-select-cell { flex:0 0 26px; }
+.file-buttons { display:flex; align-items:center; justify-content:flex-end; gap:3px; min-width:0; }
+.file-buttons .file-select-cell { flex:0 0 26px; margin-left:3px; }
+.file-buttons .file-select-cell input { opacity:1; }
+@media(max-width:760px) {
+ .file-head,.file-row { grid-template-columns:minmax(115px,1fr) 66px 75px 145px; gap:6px; padding:9px; }
+ .file-buttons { gap:0; }
+ .file-buttons button { padding:6px; }
+}
