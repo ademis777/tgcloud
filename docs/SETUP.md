@@ -43,3 +43,7 @@ Vercel is web/API only. A dedicated worker and local Bot API server are a separa
 ## Telegram login
 
 Follow [TELEGRAM_LOGIN.md](./TELEGRAM_LOGIN.md) to set up a separate platform bot, its OIDC credentials, the Supabase custom provider and the production-only feature flag. Email sign-in remains the fallback while the external provider is not configured.
+
+## Account language and public locale lists
+
+Apply `supabase/migrations/0002_user_preferences.sql` once (already applied to production project `tg-cloud-v2`). Each signed-in user can select any of six languages at `/settings`; the preference is saved in `public.user_preferences` under owner-only RLS, then restored through Supabase Auth on other devices. Public locale menus show English, French, Spanish, German plus either Ukrainian or Russian based on the primary browser language (preferred) or the Vercel IP-country header (fallback); other regions show four. No exact IP address is stored for this feature.

@@ -3,35 +3,53 @@ export const localeLabels = {
 } as const;
 export type Locale = keyof typeof localeLabels;
 export type Theme = "dark" | "light";
-// Ukrainian translations remain in the codebase, but the locale is not public yet.
-// Place Russian last for the current private-user workflow.
-export const localeCodes: Locale[] = ["en", "fr", "es", "de", "ru"];
-export const isPublicLocale = (value: string | undefined): value is Locale =>
-  isLocale(value) && localeCodes.includes(value);
+
+// All six translations remain available to authenticated account settings.
+export const localeCodes: Locale[] = ["en", "fr", "es", "de", "uk", "ru"];
+export const baseLocaleCodes: Locale[] = ["en", "fr", "es", "de"];
 export function isLocale(value: string | undefined): value is Locale {
   return Boolean(value && Object.prototype.hasOwnProperty.call(localeLabels, value));
 }
-const countryLocale: Record<string, Locale> = {
-  UA:"en", FR:"fr", BE:"fr", LU:"fr", MC:"fr",
-  ES:"es", MX:"es", AR:"es", CO:"es", CL:"es", PE:"es", VE:"es", UY:"es", PY:"es",
-  BO:"es", EC:"es", CR:"es", PA:"es", DO:"es", GT:"es", HN:"es", NI:"es", SV:"es", CU:"es",
-  DE:"de", AT:"de", CH:"de", LI:"de",
-  RU:"ru", BY:"ru", KZ:"ru", KG:"ru",
-  US:"en", GB:"en", IE:"en", CA:"en", AU:"en", NZ:"en",
+const countryLocale: Record<string,Locale> = {
+  UA:"uk", RU:"ru", FR:"fr", BE:"fr", LU:"fr", MC:"fr",
+  ES:"es", MX:"es", AR:"es", CO:"es", CL:"es", PE:"es", VE:"es", UY:"es",
+  PY:"es", BO:"es", EC:"es", CR:"es", PA:"es", DO:"es", GT:"es", HN:"es",
+  NI:"es", SV:"es", CU:"es", DE:"de", AT:"de", CH:"de", LI:"de",
 };
+function primaryBrowserLanguage(acceptLanguage: string | null): string {
+  const parsed=(acceptLanguage||"").split(",").map((item,index)=>{
+    const [tag, quality] = item.trim().split(";q=");
+    const q=quality===undefined ? 1 : Number(quality);
+    return {tag:tag.toLowerCase().split("-")[0],q:Number.isFinite(q)?q:0,index};
+  }).filter(item=>item.tag && item.tag!=="*" && item.q>0)
+    .sort((a,b)=>b.q-a.q || a.index-b.index);
+  return parsed[0]?.tag || "";
+}
+/** The browser's PRIMARY language wins when Ukrainian and Russian signals conflict. */
+export function regionalLocale(country: string | null, acceptLanguage: string | null): "uk" | "ru" | null {
+  const browser=primaryBrowserLanguage(acceptLanguage);
+  if(browser==="uk" || browser==="ru")return browser;
+  const geo=(country||"").toUpperCase();
+  return geo==="UA" ? "uk" : geo==="RU" ? "ru" : null;
+}
+/** Never show both optional regional languages in a public picker. */
+export function publicLocaleCodes(country: string | null, acceptLanguage: string | null): Locale[] {
+  const regional=regionalLocale(country,acceptLanguage);
+  return regional ? [...baseLocaleCodes,regional] : [...baseLocaleCodes];
+}
 export function detectLocale(cookie: string | undefined, country: string | null, acceptLanguage: string | null): Locale {
-  if (isPublicLocale(cookie)) return cookie; // A visible manual choice wins over IP and VPN.
-  const byCountry = countryLocale[(country || "").toUpperCase()];
-  if (byCountry) return byCountry;
-  const preferences = (acceptLanguage || "").split(",").map(entry => {
-    const [tag, quality] = entry.trim().split(";q=");
-    return { tag: tag.toLowerCase().split("-")[0], q: quality ? Number(quality) : 1 };
-  }).sort((a,b) => b.q-a.q);
-  for (const { tag } of preferences) if (isPublicLocale(tag)) return tag;
+  const available=publicLocaleCodes(country,acceptLanguage);
+  // Public cookie cannot reveal an unavailable regional language after a move/VPN change.
+  if(isLocale(cookie) && available.includes(cookie))return cookie;
+  const browser=primaryBrowserLanguage(acceptLanguage);
+  if(isLocale(browser) && available.includes(browser))return browser;
+  const geo=countryLocale[(country||"").toUpperCase()];
+  if(geo && available.includes(geo))return geo;
   return "en";
 }
 
 const en = {
+  settings:"Settings", settingsHeading:"Account settings", settingsDescription:"Personalize TG-Cloud for your account.", settingsAccount:"Signed in as", settingsLanguage:"Account language", settingsLanguageHelp:"All six languages are available here, regardless of your location. This preference is saved to your account and restored on other devices.", settingsLanguageSave:"Save language", settingsLanguageSaving:"Saving...", settingsLanguageSaved:"Language preference saved.", settingsLanguageLoadError:"Could not load your settings.", settingsLanguageSaveError:"Could not save your preference. Please retry.", settingsSignIn:"Sign in to access account settings.",
   language: "Language", themeLight: "Light theme", themeDark: "Dark theme",
   navHow: "How it works", navSecurity: "Security", navLogin: "Sign in",
   heroEyebrow: "CLOSED BETA", heroTitle1: "Your cloud.", heroTitle2: "Powered by Telegram.",
@@ -103,6 +121,7 @@ export type MessageKey = keyof typeof en;
 
 // Dictionaries are checked against the English catalog at build time.
 const ru: Record<MessageKey,string> = {
+  settings:"Настройки", settingsHeading:"Настройки аккаунта", settingsDescription:"Персональные настройки TG-Cloud.", settingsAccount:"Вы вошли как", settingsLanguage:"Язык аккаунта", settingsLanguageHelp:"Здесь доступны все шесть языков независимо от местоположения. Выбор сохраняется в аккаунте и восстанавливается на других устройствах.", settingsLanguageSave:"Сохранить язык", settingsLanguageSaving:"Сохраняем...", settingsLanguageSaved:"Язык аккаунта сохранён.", settingsLanguageLoadError:"Не удалось загрузить настройки.", settingsLanguageSaveError:"Не удалось сохранить язык. Повторите попытку.", settingsSignIn:"Войдите в аккаунт, чтобы открыть настройки.",
   language:"Язык",themeLight:"Светлая тема",themeDark:"Тёмная тема",
   navHow:"Как работает",navSecurity:"Безопасность",navLogin:"Войти",
   heroEyebrow:"ЗАКРЫТАЯ БЕТА",heroTitle1:"Ваше облако.",heroTitle2:"На базе Telegram.",
@@ -170,6 +189,7 @@ const ru: Record<MessageKey,string> = {
   dashboardStorageError:"Ошибка загрузки хранилища.",dashboardNoSession:"Войдите снова, чтобы продолжить.",
 };
 const uk: Record<MessageKey,string> = {
+  settings:"Налаштування", settingsHeading:"Налаштування акаунта", settingsDescription:"Персоналізуйте TG-Cloud для свого акаунта.", settingsAccount:"Ви увійшли як", settingsLanguage:"Мова акаунта", settingsLanguageHelp:"Тут доступні всі шість мов незалежно від місцеперебування. Вибір зберігається в акаунті та відновлюється на інших пристроях.", settingsLanguageSave:"Зберегти мову", settingsLanguageSaving:"Зберігаємо...", settingsLanguageSaved:"Мову акаунта збережено.", settingsLanguageLoadError:"Не вдалося завантажити налаштування.", settingsLanguageSaveError:"Не вдалося зберегти мову. Спробуйте ще раз.", settingsSignIn:"Увійдіть до акаунта, щоб відкрити налаштування.",
   language:"Мова",themeLight:"Світла тема",themeDark:"Темна тема",
   navHow:"Як це працює",navSecurity:"Безпека",navLogin:"Увійти",
   heroEyebrow:"ЗАКРИТА БЕТА",heroTitle1:"Ваша хмара.",heroTitle2:"На базі Telegram.",
@@ -237,6 +257,7 @@ const uk: Record<MessageKey,string> = {
   dashboardStorageError:"Помилка завантаження сховища.",dashboardNoSession:"Увійдіть знову, щоб продовжити.",
 };
 const fr: Record<MessageKey,string> = {
+  settings:"Paramètres", settingsHeading:"Paramètres du compte", settingsDescription:"Personnalisez TG-Cloud pour votre compte.", settingsAccount:"Connecté en tant que", settingsLanguage:"Langue du compte", settingsLanguageHelp:"Les six langues sont disponibles ici, quel que soit votre emplacement. Ce choix est enregistré dans votre compte et rétabli sur vos autres appareils.", settingsLanguageSave:"Enregistrer la langue", settingsLanguageSaving:"Enregistrement...", settingsLanguageSaved:"Langue du compte enregistrée.", settingsLanguageLoadError:"Impossible de charger les paramètres.", settingsLanguageSaveError:"Impossible d'enregistrer la langue. Réessayez.", settingsSignIn:"Connectez-vous pour accéder aux paramètres du compte.",
   language:"Langue",themeLight:"Thème clair",themeDark:"Thème sombre",
   navHow:"Fonctionnement",navSecurity:"Sécurité",navLogin:"Connexion",
   heroEyebrow:"BÊTA FERMÉE",heroTitle1:"Votre cloud.",heroTitle2:"Propulsé par Telegram.",
@@ -304,6 +325,7 @@ const fr: Record<MessageKey,string> = {
   dashboardStorageError:"Chargement du stockage impossible.",dashboardNoSession:"Reconnectez-vous pour continuer.",
 };
 const es: Record<MessageKey,string> = {
+  settings:"Configuración", settingsHeading:"Configuración de la cuenta", settingsDescription:"Personaliza TG-Cloud para tu cuenta.", settingsAccount:"Has iniciado sesión como", settingsLanguage:"Idioma de la cuenta", settingsLanguageHelp:"Los seis idiomas están disponibles aquí independientemente de tu ubicación. Se guardará tu elección y se restaurará en otros dispositivos.", settingsLanguageSave:"Guardar idioma", settingsLanguageSaving:"Guardando...", settingsLanguageSaved:"Se ha guardado el idioma.", settingsLanguageLoadError:"No se pudo cargar la configuración.", settingsLanguageSaveError:"No se pudo guardar el idioma. Inténtalo de nuevo.", settingsSignIn:"Inicia sesión para acceder a la configuración.",
   language:"Idioma",themeLight:"Tema claro",themeDark:"Tema oscuro",
   navHow:"Cómo funciona",navSecurity:"Seguridad",navLogin:"Iniciar sesión",
   heroEyebrow:"BETA CERRADA",heroTitle1:"Tu nube.",heroTitle2:"Con Telegram.",
@@ -371,6 +393,7 @@ const es: Record<MessageKey,string> = {
   dashboardStorageError:"Error al cargar el almacenamiento.",dashboardNoSession:"Inicia sesión de nuevo.",
 };
 const de: Record<MessageKey,string> = {
+  settings:"Einstellungen", settingsHeading:"Kontoeinstellungen", settingsDescription:"Personalisiere TG-Cloud für dein Konto.", settingsAccount:"Angemeldet als", settingsLanguage:"Kontosprache", settingsLanguageHelp:"Alle sechs Sprachen stehen hier unabhängig von deinem Standort zur Verfügung. Die Auswahl wird in deinem Konto gespeichert und auf anderen Geräten wiederhergestellt.", settingsLanguageSave:"Sprache speichern", settingsLanguageSaving:"Speichert...", settingsLanguageSaved:"Kontosprache gespeichert.", settingsLanguageLoadError:"Einstellungen konnten nicht geladen werden.", settingsLanguageSaveError:"Sprache konnte nicht gespeichert werden. Bitte erneut versuchen.", settingsSignIn:"Melde dich an, um die Kontoeinstellungen zu öffnen.",
   language:"Sprache",themeLight:"Helles Design",themeDark:"Dunkles Design",
   navHow:"So funktioniert es",navSecurity:"Sicherheit",navLogin:"Anmelden",
   heroEyebrow:"GESCHLOSSENE BETA",heroTitle1:"Deine Cloud.",heroTitle2:"Mit Telegram.",
