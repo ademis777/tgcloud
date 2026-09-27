@@ -74,3 +74,13 @@ test("bulk delete confirmation and progress are translated with accurate counts"
    assert.ok(["50","200","45","5"].every(number=>progress.includes(number)),locale+" progress");
  }
 });
+
+test("multi-file upload labels and progress are translated",()=>{
+ for(const locale of localeCodes) {
+  for(const key of ["uploadQueueTitle","uploadBatchLimit","uploadBatchProgress","uploadBatchComplete","uploadBatchPartial","uploadBatchError","uploadStatusPending","uploadStatusUploading","uploadStatusDone","uploadStatusFailed"])
+   assert.ok(translate(locale,key).length>3,locale+" "+key);
+  const progress=translate(locale,"uploadBatchProgress",{done:12,total:20,uploaded:11,failed:1});
+  assert.ok(["12","20","11","1"].every(v=>progress.includes(v)),locale+" progress");
+  assert.ok(translate(locale,"uploadBatchLimit",{count:20}).includes("20"),locale+" limit");
+ }
+});
