@@ -18,8 +18,11 @@ test("fallback uses Accept-Language then English",()=>{
   assert.equal(detectLocale("invalid","ZZ","pt-BR,ja;q=0.8,en;q=0.4"),"en");
   assert.equal(detectLocale(undefined,null,null),"en");
 });
-test("translations exist in all six languages",()=>{
-  assert.equal(localeCodes.length,6);
+test("five public locales; Ukrainian translations retained",()=>{
+  assert.deepEqual(localeCodes,["en","fr","es","de","ru"]);
+  assert.ok(!localeCodes.includes("uk"));
+  assert.ok(translate("uk","heroTitle1").length>0);
+  assert.equal(detectLocale(undefined,"ZZ","uk-UA,uk;q=0.9,en;q=0.5"),"en");
   for(const locale of localeCodes){
     const string=translate(locale,"dashboardItems",{count:3});
     assert.ok(string.includes("3"),locale);
