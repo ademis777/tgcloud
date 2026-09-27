@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ArrowDownToLine, X, File as FileIcon, FileAudio, FileText, FileVideo, Image as ImageIcon, LoaderCircle } from "lucide-react";
+import { ArrowDownToLine, X, File as FileIcon, FileAudio, FileText, FileVideo, Image as ImageIcon, LoaderCircle, Play } from "lucide-react";
 import { accessToken } from "@/lib/browser-api";
 import { previewDescriptor, type PreviewKind } from "@/lib/file-preview";
 import { usePreferences } from "@/components/preferences";
@@ -23,19 +23,85 @@ function FileIconFor({kind}:{kind:PreviewKind}){
  if(kind==="pdf"||kind==="text")return <FileText size={19}/>;
  return <FileIcon size={19}/>;
 }
+/** Decode a real browser-rendered frame; generated image is much smaller than the source MP4. */
+async function makeVideoPoster(blob:Blob, signal:AbortSignal):Promise<string>{
+ const source=URL.createObjectURL(blob);
+ const video=document.createElement("video");
+ video.muted=true;
+ video.playsInline=true;
+ video.preload="auto";
+ try{
+  await new Promise<void>((resolve,reject)=>{
+   let finished=false;
+   const complete=(error?:Error)=>{
+    if(finished)return;
+    finished=true;
+    clearTimeout(timeout);
+    video.onloadeddata=null;
+    video.onerror=null;
+    signal.removeEventListener("abort",onAbort);
+    if(error)reject(error);else resolve();
+   };
+   const onAbort=()=>complete(new Error("Aborted"));
+   const timeout=setTimeout(()=>complete(new Error("Video frame timed out")),15000);
+   video.onloadeddata=()=>complete();
+   video.onerror=()=>complete(new Error("Video cannot be decoded"));
+   signal.addEventListener("abort",onAbort,{once:true});
+   video.src=source;
+   if(signal.aborted)onAbort();
+  });
+  if(signal.aborted || !video.videoWidth || !video.videoHeight)throw new Error("Video frame unavailable");
+  const scale=Math.min(1,320/video.videoWidth,180/video.videoHeight);
+  const canvas=document.createElement("canvas");
+  canvas.width=Math.max(1,Math.round(video.videoWidth*scale));
+  canvas.height=Math.max(1,Math.round(video.videoHeight*scale));
+  const ctx=canvas.getContext("2d");
+  if(!ctx)throw new Error("Canvas unavailable");
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  return canvas.toDataURL("image/jpeg",0.78);
+ }finally{
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
+  URL.revokeObjectURL(source);
+ }
+}
 export function FileThumbnail({file}:{file:PreviewFile}){
  const kind=previewDescriptor(file.mime_type,file.name).kind;
  const [url,setUrl]=useState<string|null>(null);
+ const [visible,setVisible]=useState(false);
+ const [element,setElement]=useState<HTMLSpanElement|null>(null);
  useEffect(()=>{
-  if(kind!=="image"||file.status!=="ready")return;
-  const controller=new AbortController();let objectUrl:string|null=null;
-  void loadPreview(file,controller.signal).then(blob=>{
+  if(!element || (kind!=="image"&&kind!=="video") || file.status!=="ready")return;
+  if(typeof IntersectionObserver==="undefined"){setVisible(true);return;}
+  const observer=new IntersectionObserver(entries=>{
+   if(entries.some(entry=>entry.isIntersecting)){
+    setVisible(true);
+    observer.disconnect();
+   }
+  },{rootMargin:"120px"});
+  observer.observe(element);
+  return ()=>observer.disconnect();
+ },[element,kind,file.status,file.id]);
+ useEffect(()=>{
+  if(!visible || (kind!=="image"&&kind!=="video") || file.status!=="ready")return;
+  const controller=new AbortController();
+  let objectUrl:string|null=null;
+  void loadPreview(file,controller.signal).then(async blob=>{
    if(controller.signal.aborted)return;
-   objectUrl=URL.createObjectURL(blob);setUrl(objectUrl);
-  }).catch(()=>{});
+   if(kind==="image"){
+    objectUrl=URL.createObjectURL(blob);
+    setUrl(objectUrl);
+   }else{
+    const poster=await makeVideoPoster(blob,controller.signal);
+    if(!controller.signal.aborted)setUrl(poster);
+   }
+  }).catch(()=>{}); // Unsupported codec: retain the original video icon.
   return ()=>{controller.abort();if(objectUrl)URL.revokeObjectURL(objectUrl);};
- },[file.id,file.status,file.name,file.mime_type,kind]);
- return <span className="file-glyph preview-glyph">{url?<img src={url} alt="" loading="lazy"/>:<FileIconFor kind={kind}/>}</span>;
+ },[file.id,file.status,file.name,file.mime_type,kind,visible]);
+ return <span ref={setElement} className="file-glyph preview-glyph">
+  {url?<><img src={url} alt="" loading="lazy"/>{kind==="video"&&<span className="video-thumb-play" aria-hidden="true"><Play size={12} fill="currentColor"/></span>}</>:<FileIconFor kind={kind}/>}
+ </span>;
 }
 export function FilePreviewModal({file,onClose,onDownload}:{file:PreviewFile;onClose:()=>void;onDownload:()=>void}){
  const {t}=usePreferences();
