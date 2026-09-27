@@ -5,11 +5,13 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Bot, CheckCircle2, ExternalLink, Send } from "lucide-react";
 import { api } from "@/lib/browser-api";
 import { browserDb } from "@/lib/supabase-browser";
+import { PreferencesControls, usePreferences } from "@/components/preferences";
 
 type Channel = { id: string; title: string };
 type Connection = { bot_username: string; channel_id: string; channel_title: string };
 export default function ConnectPage() {
   const router = useRouter();
+  const {t}=usePreferences();
   const [token, setToken] = useState("");
   const [channelId, setChannelId] = useState("");
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -26,8 +28,8 @@ export default function ConnectPage() {
     try {
       const r = await api<{bot: string; channels: Channel[]}>("/api/telegram/discover", "POST", { token });
       setChannels(r.channels);
-      setNotice(r.channels.length ? "Бот @" + r.bot + " обнаружен. Выберите хранилище ниже." : "Бот найден, но новые сообщения канала не обнаружены. Опубликуйте запись в канале после добавления бота администратором и повторите поиск.");
-    } catch (e) { setError(e instanceof Error ? e.message : "Не удалось найти каналы. Chat ID можно ввести вручную."); }
+      setNotice(r.channels.length ? t("setupFound",{bot:r.bot}) : t("setupNoChannels"));
+    } catch (e) { setError(e instanceof Error ? e.message : t("setupDiscoverError")); }
     finally { setBusy(false); }
   }
   async function connect(e: FormEvent<HTMLFormElement>) {
@@ -35,28 +37,28 @@ export default function ConnectPage() {
     try {
       await api("/api/telegram/connection", "POST", { token, channelId });
       setToken(""); router.push("/dashboard"); router.refresh();
-    } catch (e) { setError(e instanceof Error ? e.message : "Ошибка подключения."); }
+    } catch (e) { setError(e instanceof Error ? e.message : t("setupConnectionError")); }
     finally { setBusy(false); }
   }
   return <main className="shell page-top">
-    <header className="inner-nav"><Link href="/dashboard" className="back"><ArrowLeft size={17}/> В кабинет</Link><span className="eyebrow">TG-CLOUD · SETUP</span></header>
-    <div className="page-heading"><div className="feature-icon"><Bot/></div><h1>Подключение хранилища</h1><p>Три простых шага. Ваш бот должен иметь право публиковать документы в личном Telegram-канале.</p></div>
-    {existing && <div className="notice success"><CheckCircle2 size={17}/> Сейчас подключён @{existing.bot_username} — {existing.channel_title || existing.channel_id}</div>}
+    <header className="inner-nav"><Link href="/dashboard" className="back"><ArrowLeft size={17}/> {t("backDashboard")}</Link><div className="top-controls"><span className="eyebrow">TG-CLOUD · SETUP</span><PreferencesControls/></div></header>
+    <div className="page-heading"><div className="feature-icon"><Bot/></div><h1>{t("setupTitle")}</h1><p>{t("setupIntro")}</p></div>
+    {existing && <div className="notice success"><CheckCircle2 size={17}/> {t("setupCurrent",{bot:existing.bot_username,channel:existing.channel_title||existing.channel_id})}</div>}
     <div className="wizard">
-      <article className="wizard-step"><div className="number">01</div><div><h2>Создайте Telegram-бота</h2><p>Нажмите на ссылку, откройте BotFather, отправьте /newbot и следуйте подсказкам. Скопируйте полученный токен. Никому его не передавайте.</p>
-        <a className="button outline" target="_blank" rel="noreferrer" href="https://t.me/BotFather">Открыть BotFather <ExternalLink size={16}/></a></div></article>
-      <article className="wizard-step"><div className="number">02</div><div><h2>Создайте приватный канал</h2><p>В Telegram: Новый канал → Приватный → Добавьте созданного бота в администраторы и разрешите публикацию сообщений. После этого опубликуйте в канале любое тестовое сообщение.</p>
-        <p className="muted">Обычный Bot API не может автоматически создавать ботов или каналы вместо пользователя.</p></div></article>
-      <article className="wizard-step"><div className="number">03</div><div><h2>Свяжите канал с TG-Cloud</h2>
-        <form onSubmit={connect} className="stack"><label><span>Токен от BotFather</span><input type="password" required autoComplete="off" value={token} onChange={e => setToken(e.target.value)} placeholder="123456789:ABC..." /></label>
-        <button className="button outline" type="button" onClick={discover} disabled={busy || !token.trim()}><Send size={16}/> Найти мои каналы</button>
-        {channels.length > 0 && <label><span>Обнаруженные каналы</span><select value={channelId} onChange={e => setChannelId(e.target.value)}><option value="">Выберите канал</option>{channels.map(c => <option key={c.id} value={c.id}>{c.title} ({c.id})</option>)}</select></label>}
-        <label><span>ID канала (если поиск не сработал)</span><input required value={channelId} onChange={e => setChannelId(e.target.value)} placeholder="-1001234567890"/></label>
+      <article className="wizard-step"><div className="number">01</div><div><h2>{t("setupStep1")}</h2><p>{t("setupStep1Body")}</p>
+        <a className="button outline" target="_blank" rel="noreferrer" href="https://t.me/BotFather">{t("setupOpenBotfather")} <ExternalLink size={16}/></a></div></article>
+      <article className="wizard-step"><div className="number">02</div><div><h2>{t("setupStep2")}</h2><p>{t("setupStep2Body")}</p>
+        <p className="muted">{t("setupStep2Note")}</p></div></article>
+      <article className="wizard-step"><div className="number">03</div><div><h2>{t("setupStep3")}</h2>
+        <form onSubmit={connect} className="stack"><label><span>{t("setupToken")}</span><input type="password" required autoComplete="off" value={token} onChange={e => setToken(e.target.value)} placeholder="123456789:ABC..." /></label>
+        <button className="button outline" type="button" onClick={discover} disabled={busy || !token.trim()}><Send size={16}/> {t("setupFind")}</button>
+        {channels.length > 0 && <label><span>{t("setupSelect")}</span><select value={channelId} onChange={e => setChannelId(e.target.value)}><option value="">{t("setupSelectPlaceholder")}</option>{channels.map(c => <option key={c.id} value={c.id}>{c.title} ({c.id})</option>)}</select></label>}
+        <label><span>{t("setupChannelId")}</span><input required value={channelId} onChange={e => setChannelId(e.target.value)} placeholder="-1001234567890"/></label>
         {error && <div role="alert" className="notice error">{error}</div>}
         {notice && <div role="status" className="notice success">{notice}</div>}
-        <button className="button primary" disabled={busy || !token || !channelId}>{busy ? "Проверяем..." : "Проверить и подключить"} <ArrowRight size={17}/></button>
+        <button className="button primary" disabled={busy || !token || !channelId}>{busy ? t("setupBusy") : t("setupConnect")} <ArrowRight size={17}/></button>
         </form></div></article>
     </div>
-    <p className="muted footer-hint">Токен передаётся только по HTTPS в серверный API и хранится в зашифрованном виде. Не вставляйте его в публичные сообщения.</p>
+    <p className="muted footer-hint">{t("setupPrivacy")}</p>
   </main>;
 }
