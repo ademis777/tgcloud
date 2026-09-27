@@ -2,6 +2,7 @@ import { adminDb, failure, requireUser, unauthorized } from "@/lib/server";
 import { decryptToken } from "@/lib/secrets";
 import { fetchTelegramFile, telegramCall } from "@/lib/telegram";
 import { telegramDeletionTarget } from "@/lib/file-deletion";
+import { previewDescriptor } from "@/lib/file-preview";
 export const runtime = "nodejs";
 type Context = { params: Promise<{ id: string }> };
 
@@ -17,9 +18,12 @@ export async function GET(request: Request, context: Context) {
     if (f.size_bytes > 8 * 1024 * 1024) return failure("Large-file download worker is not yet configured.", 501);
     const { data: connection } = await db.from("bot_connections").select("token_ciphertext").eq("user_id", user.id).maybeSingle();
     if (!connection) return failure("Telegram connection unavailable.", 409);
+    const preview = new URL(request.url).searchParams.get("view") === "1";
+    const descriptor = previewDescriptor(f.mime_type, f.name);
+    if (preview && descriptor.kind === "unsupported") return failure("Preview is unavailable for this type.", 415);
     const upstream = await fetchTelegramFile(decryptToken(connection.token_ciphertext), f.tg_file_id);
     return new Response(upstream.body, { headers: {
-      "Content-Type": f.mime_type || "application/octet-stream",
+      "Content-Type": preview ? descriptor.contentType : (f.mime_type || "application/octet-stream"),
       "Content-Disposition": "attachment; filename=\"download\"; filename*=UTF-8''" + encodeURIComponent(f.name),
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
