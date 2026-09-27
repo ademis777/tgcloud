@@ -3,12 +3,16 @@ export const localeLabels = {
 } as const;
 export type Locale = keyof typeof localeLabels;
 export type Theme = "dark" | "light";
-export const localeCodes = Object.keys(localeLabels) as Locale[];
+// Ukrainian translations remain in the codebase, but the locale is not public yet.
+// Place Russian last for the current private-user workflow.
+export const localeCodes: Locale[] = ["en", "fr", "es", "de", "ru"];
+export const isPublicLocale = (value: string | undefined): value is Locale =>
+  isLocale(value) && localeCodes.includes(value);
 export function isLocale(value: string | undefined): value is Locale {
   return Boolean(value && Object.prototype.hasOwnProperty.call(localeLabels, value));
 }
 const countryLocale: Record<string, Locale> = {
-  UA:"uk", FR:"fr", BE:"fr", LU:"fr", MC:"fr",
+  UA:"en", FR:"fr", BE:"fr", LU:"fr", MC:"fr",
   ES:"es", MX:"es", AR:"es", CO:"es", CL:"es", PE:"es", VE:"es", UY:"es", PY:"es",
   BO:"es", EC:"es", CR:"es", PA:"es", DO:"es", GT:"es", HN:"es", NI:"es", SV:"es", CU:"es",
   DE:"de", AT:"de", CH:"de", LI:"de",
@@ -16,14 +20,14 @@ const countryLocale: Record<string, Locale> = {
   US:"en", GB:"en", IE:"en", CA:"en", AU:"en", NZ:"en",
 };
 export function detectLocale(cookie: string | undefined, country: string | null, acceptLanguage: string | null): Locale {
-  if (isLocale(cookie)) return cookie; // A manual choice always wins over IP and VPN.
+  if (isPublicLocale(cookie)) return cookie; // A visible manual choice wins over IP and VPN.
   const byCountry = countryLocale[(country || "").toUpperCase()];
   if (byCountry) return byCountry;
   const preferences = (acceptLanguage || "").split(",").map(entry => {
     const [tag, quality] = entry.trim().split(";q=");
     return { tag: tag.toLowerCase().split("-")[0], q: quality ? Number(quality) : 1 };
   }).sort((a,b) => b.q-a.q);
-  for (const { tag } of preferences) if (isLocale(tag)) return tag;
+  for (const { tag } of preferences) if (isPublicLocale(tag)) return tag;
   return "en";
 }
 

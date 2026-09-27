@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { detectLocale, localeCodes, translate } from "../src/lib/i18n.ts";
 
 test("IP country selects supported locale",()=>{
-  assert.equal(detectLocale(undefined,"UA","en-US,en;q=0.9"),"uk");
+  assert.equal(detectLocale(undefined,"UA","en-US,en;q=0.9"),"en");
   assert.equal(detectLocale(undefined,"FR","en-US,en;q=0.9"),"fr");
   assert.equal(detectLocale(undefined,"DE","en-US,en;q=0.9"),"de");
   assert.equal(detectLocale(undefined,"MX","en-US,en;q=0.9"),"es");
@@ -11,7 +11,7 @@ test("IP country selects supported locale",()=>{
 });
 test("manual cookie wins over country/IP and browser",()=>{
   assert.equal(detectLocale("de","UA","fr-FR"),"de");
-  assert.equal(detectLocale("uk","US","en-US"),"uk");
+  assert.equal(detectLocale("uk","US","en-US"),"en");
 });
 test("fallback uses Accept-Language then English",()=>{
   assert.equal(detectLocale(undefined,null,"fr-CA,fr;q=0.9,en;q=0.8"),"fr");
