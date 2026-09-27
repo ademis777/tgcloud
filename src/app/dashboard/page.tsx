@@ -11,6 +11,7 @@ import { FilePreviewModal, FileThumbnail } from "@/components/file-preview";
 import { previewDescriptor } from "@/lib/file-preview";
 import { Eye } from "lucide-react";
 import { runBulkDelete, type BulkDeleteProgress } from "@/lib/bulk-delete";
+import { runUploadQueue, validateUploadCount, MAX_UPLOAD_BATCH, type UploadProgress } from "@/lib/upload-queue";
 
 type FolderRow = { id: string; parent_id: string | null; name: string };
 type FileRow = { id: string; name: string; size_bytes: number; mime_type: string; folder_id: string | null; status: "pending" | "ready" | "failed"; last_error: string | null; created_at: string };
@@ -34,6 +35,7 @@ export default function Dashboard() {
   const [previewFile, setPreviewFile] = useState<FileRow | null>(null);
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(() => new Set());
   const [bulkProgress, setBulkProgress] = useState<BulkDeleteProgress | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const refresh = useCallback(async () => {
     const db = browserDb();
     const [{ data: f, error: fe }, { data: d, error: de }, status] = await Promise.all([
@@ -127,21 +129,40 @@ export default function Dashboard() {
     } finally { setBusy(false); }
   }
   async function upload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]; event.target.value = "";
-    if (!file) return;
+    const batch = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!batch.length || busy) return;
     if (!connection.connected) { setError(t("dashboardNeedConnection")); return; }
-    if (file.size > 8 * 1024 * 1024) { setError(t("dashboardTooLarge")); return; }
-    const safeName = file.name.replace(/[/\\\u0000-\u001f]/g, "_").slice(0, 200) || "file";
-    const path = userId + "/" + crypto.randomUUID() + "/" + safeName;
-    setBusy(true); setError(""); setNotice(t("dashboardStaging"));
+    if (!userId) { setError(t("dashboardLoadError")); return; }
+    if (!validateUploadCount(batch.length)) {
+      setError(t("uploadBatchLimit", { count: MAX_UPLOAD_BATCH }));
+      return;
+    }
+    const destination = selected;
+    setBusy(true); setError(""); setNotice(""); setUploadProgress(null); setBulkProgress(null);
     try {
-      const { error: e } = await browserDb().storage.from("pending-files").upload(path, file, { upsert: false, contentType: file.type || "application/octet-stream" });
-      if (e) throw e;
-      setNotice(t("dashboardSending"));
-      await api("/api/files/commit", "POST", { path, name: safeName, folderId: selected });
-      setNotice(t("dashboardUploaded")); await refresh();
-    } catch (e) { setError(e instanceof Error ? e.message : t("dashboardUploadError")); setNotice(""); await refresh().catch(() => {}); }
-    finally { setBusy(false); }
+      const result = await runUploadQueue(batch, async file => {
+        const safeName = file.name.replace(/[/\\\\\u0000-\u001f]/g, "_").slice(0, 200) || "file";
+        const path = userId + "/" + crypto.randomUUID() + "/" + safeName;
+        const { error: stagingError } = await browserDb().storage.from("pending-files")
+          .upload(path, file, { upsert: false, contentType: file.type || "application/octet-stream" });
+        if (stagingError) throw stagingError;
+        // One commit request per file, sequentially; do not automatically retry after
+        // a Telegram error because the channel may already contain its message.
+        await api("/api/files/commit", "POST", { path, name: safeName, folderId: destination });
+      }, setUploadProgress, t("dashboardTooLarge"));
+      if (result.failed) {
+        setError(t("uploadBatchPartial", { uploaded: result.uploaded, failed: result.failed }));
+      } else {
+        setNotice(t("uploadBatchComplete", { count: result.uploaded }));
+      }
+      await refresh();
+    } catch (e) {
+      setError(t("uploadBatchError") + (e instanceof Error ? " " + e.message : ""));
+      await refresh().catch(() => {});
+    } finally {
+      setBusy(false);
+    }
   }
   async function download(file: FileRow) {
     setError(""); setNotice("");
@@ -230,7 +251,7 @@ export default function Dashboard() {
     </aside>
     <section className="dashboard-content"><div className="dashboard-top"><div><div className="eyebrow">{t("dashboardTitle")}</div><h1>{selectedName}</h1><p className="muted">{t("dashboardIntro")}</p></div>
       <div className="dashboard-actions"><PreferencesControls/><button className="button outline" disabled={busy || !userId} onClick={createFolder}><FolderPlus size={17}/> {t("dashboardNewFolder")}</button>
-        <label className={"button primary " + (busy || !userId ? "disabled" : "")}><UploadCloud size={17}/> {t("dashboardUpload")}<input type="file" hidden disabled={busy || !userId} onChange={upload}/></label></div></div>
+        <label className={"button primary " + (busy || !userId ? "disabled" : "")}><UploadCloud size={17}/> {t("dashboardUpload")}<input type="file" multiple hidden disabled={busy || !userId || !connection.connected} onChange={upload}/></label></div></div>
       {!connection.connected && <div className="setup-banner"><div><strong>{t("dashboardSetup")}</strong><p>{t("dashboardSetupBody")}</p></div><Link href="/connect" className="button primary">{t("dashboardConfigure")} →</Link></div>}
       {error && <div className="notice error" role="alert">{error}
         {catalogOnlyFile && <div className="catalog-fallback"><button type="button" className="button outline" disabled={busy} onClick={removeCatalogOnly}>{t("dashboardCatalogOnlyAction")}</button></div>}
@@ -242,6 +263,22 @@ export default function Dashboard() {
         <span className="bulk-selection-count">{t("bulkSelected", { count: selectedCount })}</span>
         <button type="button" className="bulk-clear" disabled={busy || selectedCount === 0} onClick={() => toggleSelectAll(false)}>{t("bulkClear")}</button>
         <button type="button" className="button bulk-delete-button" disabled={busy || selectedCount === 0} onClick={removeSelectedFiles}><Trash2 size={16}/>{t("bulkDeleteButton", { count: selectedCount })}</button>
+      </div>}
+      {uploadProgress && <div className="upload-queue" aria-label={t("uploadQueueTitle")}>
+        <div className="upload-queue-top">
+          <strong>{t("uploadQueueTitle")}</strong>
+          <span aria-live="polite">{t("uploadBatchProgress", { done: uploadProgress.done, total: uploadProgress.total, uploaded: uploadProgress.uploaded, failed: uploadProgress.failed })}</span>
+        </div>
+        <progress value={uploadProgress.done} max={uploadProgress.total || 1}/>
+        <div className="upload-queue-items">{uploadProgress.items.map(item =>
+          <div className={"upload-queue-item status-" + item.status} key={item.id}>
+            <span title={item.name}>{item.name}</span>
+            <small title={item.error || ""}>{item.status === "uploaded" ? t("uploadStatusDone") :
+              item.status === "failed" ? t("uploadStatusFailed") :
+              item.status === "uploading" ? t("uploadStatusUploading") : t("uploadStatusPending")}</small>
+            {item.error && <p title={item.error}>{item.error}</p>}
+          </div>)}
+        </div>
       </div>}
       {bulkProgress && <div className="bulk-progress" role="status" aria-live="polite">
         <span>{t("bulkProgress", { done: bulkProgress.done, total: bulkProgress.total, deleted: bulkProgress.deleted, failed: bulkProgress.failed })}</span>
