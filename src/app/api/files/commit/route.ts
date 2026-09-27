@@ -1,6 +1,6 @@
 import { adminDb, failure, requireUser, unauthorized } from "@/lib/server";
 import { decryptToken } from "@/lib/secrets";
-import { sendDocument } from "@/lib/telegram";
+import { sendDocument, sentMediaFileId } from "@/lib/telegram";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 const MAX_BYTES = 8 * 1024 * 1024;
@@ -34,9 +34,10 @@ export async function POST(request: Request) {
     if (insertError || !record) return failure("Could not index staged file.", 500);
     try {
       const sent = await sendDocument(decryptToken(connection.token_ciphertext), connection.channel_id, blob, name);
-      if (!sent.document?.file_id) throw new Error("Telegram did not return a document ID.");
+      const mediaFileId = sentMediaFileId(sent);
+      if (!mediaFileId) throw new Error("Telegram accepted the upload but returned no supported media file ID. Do not retry this file; inspect the channel.");
       const { error: updateError } = await db.from("files").update({
-        tg_file_id: sent.document.file_id, tg_message_id: sent.message_id,
+        tg_file_id: mediaFileId, tg_message_id: sent.message_id,
         tg_chat_id: connection.channel_id, tg_bot_id: connection.bot_id,
         status: "ready", last_error: null,
       }).eq("id", record.id).eq("user_id", user.id);
